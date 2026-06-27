@@ -1,5 +1,7 @@
-// Shared game types — used by both the PartyKit server (authoritative) and the
+// Shared domain types — used by both the PartyKit server (authoritative) and the
 // Next.js client (rendering). Keep this free of any runtime/browser/server deps.
+// Wire-protocol message types live in ./protocol and are re-exported below so
+// `@game/types` remains the single import surface for callers.
 
 export type SpaceType =
   | "go"
@@ -47,6 +49,37 @@ export interface Dice {
   rolled: boolean;
 }
 
+/** An outstanding trade offer awaiting the recipient's response. */
+export interface PendingTrade {
+  /** proposer player index */
+  from: number;
+  /** recipient player index */
+  to: number;
+  /** property indices the proposer gives away */
+  offerProps: number[];
+  /** property indices the proposer wants from the recipient */
+  requestProps: number[];
+  /** cash the proposer adds to the offer */
+  offerCash: number;
+  /** cash the proposer wants from the recipient */
+  requestCash: number;
+}
+
+/** Rent the current player owes and must confirm paying. */
+export interface PendingRent {
+  pos: number;
+  /** current amount owed (may be reduced via negotiation) */
+  amount: number;
+  /** the originally computed rent, before any negotiation */
+  original: number;
+  /** owner (landlord) player index */
+  to: number;
+  /** player index who owes the rent */
+  payer: number;
+  /** payer has asked the owner to negotiate; owner should respond */
+  negotiating: boolean;
+}
+
 export interface GameState {
   phase: Phase;
   /** id of the player who created the room (lobby host) */
@@ -63,35 +96,8 @@ export interface GameState {
   dice: Dice;
   /** space index awaiting a buy/pass decision by the current player, else null */
   pendingBuy: number | null;
-  /** an outstanding trade offer awaiting the recipient's response, else null */
-  pendingTrade: {
-    /** proposer player index */
-    from: number;
-    /** recipient player index */
-    to: number;
-    /** property indices the proposer gives away */
-    offerProps: number[];
-    /** property indices the proposer wants from the recipient */
-    requestProps: number[];
-    /** cash the proposer adds to the offer */
-    offerCash: number;
-    /** cash the proposer wants from the recipient */
-    requestCash: number;
-  } | null;
-  /** rent the current player owes and must confirm paying, else null */
-  pendingRent: {
-    pos: number;
-    /** current amount owed (may be reduced via negotiation) */
-    amount: number;
-    /** the originally computed rent, before any negotiation */
-    original: number;
-    /** owner (landlord) player index */
-    to: number;
-    /** player index who owes the rent */
-    payer: number;
-    /** payer has asked the owner to negotiate; owner should respond */
-    negotiating: boolean;
-  } | null;
+  pendingTrade: PendingTrade | null;
+  pendingRent: PendingRent | null;
   /** most recent dice total, for client animation */
   lastRoll: number | null;
   log: string[];
@@ -100,52 +106,4 @@ export interface GameState {
   riggedDice: { d1: number; d2: number } | null;
 }
 
-// ---- Messages over the wire ----
-
-export type ClientAction =
-  | { type: "join"; name: string }
-  | { type: "setName"; name: string }
-  | { type: "cycleToken" }
-  | { type: "start" }
-  | { type: "roll" }
-  | { type: "buy" }
-  | { type: "pass" }
-  | { type: "payRent" }
-  | { type: "requestNegotiate" }
-  | { type: "negotiateRent"; amount: number }
-  | { type: "build"; pos: number }
-  | {
-      type: "proposeTrade";
-      to: number;
-      offerProps: number[];
-      requestProps: number[];
-      offerCash: number;
-      requestCash: number;
-    }
-  | { type: "respondTrade"; accept: boolean }
-  | { type: "cancelTrade" }
-  | { type: "sellHouse"; pos: number }
-  | { type: "mortgage"; pos: number }
-  | { type: "unmortgage"; pos: number }
-  | { type: "endTurn" }
-  | { type: "reset" }
-  | { type: "admin"; password: string; cmd: AdminCmd };
-
-/** Admin console commands. All require the correct password (checked server-side)
- *  and bypass normal turn/host restrictions. */
-export type AdminCmd =
-  | { kind: "forceDice"; d1: number; d2: number }
-  | { kind: "clearForceDice" }
-  | { kind: "setCash"; target: number; amount: number }
-  | { kind: "movePlayer"; target: number; position: number }
-  | { kind: "setTurn"; turn: number }
-  | { kind: "setOwner"; pos: number; owner: number | null }
-  | { kind: "setBuildings"; pos: number; level: number }
-  | { kind: "setMortgage"; pos: number; mortgaged: boolean }
-  | { kind: "kick"; target: number }
-  | { kind: "setPhase"; phase: Phase }
-  | { kind: "replaceState"; state: GameState };
-
-export type ServerMessage =
-  | { type: "state"; state: GameState; you: string }
-  | { type: "error"; message: string };
+export type { ClientAction, AdminCmd, ServerMessage } from "./protocol";

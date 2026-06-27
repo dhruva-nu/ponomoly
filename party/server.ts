@@ -1,6 +1,8 @@
 import type * as Party from "partykit/server";
 import { applyAction, createInitialState, playerIndex } from "../game/logic";
+import { normalizeState } from "../game/state";
 import { MAX_PLAYERS } from "../game/board";
+import { LOG_LIMIT } from "../game/constants";
 import type { ClientAction, GameState, ServerMessage } from "../game/types";
 
 const STORAGE_KEY = "game";
@@ -16,10 +18,7 @@ export default class PonomolyServer implements Party.Server {
     const saved = await this.room.storage.get<GameState>(STORAGE_KEY);
     if (saved) {
       // Backfill fields added after this room was last persisted.
-      if (!saved.buildings) saved.buildings = {};
-      if (!saved.mortgaged) saved.mortgaged = {};
-      if (saved.pendingTrade === undefined) saved.pendingTrade = null;
-      this.state = saved;
+      this.state = normalizeState(saved);
     }
   }
 
@@ -90,7 +89,7 @@ export default class PonomolyServer implements Party.Server {
       }
       this.state.log = this.state.log
         .concat([`${leaving.name} left the lobby.`])
-        .slice(-6);
+        .slice(-LOG_LIMIT);
     } else {
       // Keep the seat during play; just mark them away.
       this.state.players[idx].connected = false;
