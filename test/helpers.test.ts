@@ -22,6 +22,8 @@ const stubPlayer = (id: string, over: Partial<Player> = {}): Player => ({
   properties: [],
   connected: true,
   bankrupt: false,
+  jailed: false,
+  jailTurns: 0,
   ...over,
 });
 

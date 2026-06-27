@@ -39,6 +39,10 @@ export interface Player {
   properties: number[];
   connected: boolean;
   bankrupt: boolean;
+  /** true while the player is locked in Jail */
+  jailed: boolean;
+  /** failed escape attempts taken so far this Jail stint */
+  jailTurns: number;
 }
 
 export type Phase = "lobby" | "playing" | "ended";
@@ -121,6 +125,8 @@ export interface GameState {
   /** space indices queued to be auctioned one at a time (e.g. the estate of a
    *  player who quit or was removed); the head opens once `pendingAuction` clears */
   auctionQueue: number[];
+  /** consecutive doubles rolled this turn; a third sends the player to Jail */
+  doublesStreak: number;
   /** most recent dice total, for client animation */
   lastRoll: number | null;
   log: string[];
