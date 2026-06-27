@@ -7,6 +7,7 @@ import PropertyHeader from "@/components/ui/PropertyHeader";
 import { Stat, StatFrame } from "@/components/ui/StatFrame";
 import { GhostButton, PrimaryButton } from "@/components/ui/Buttons";
 import { COLOR, GRADIENT, eyebrowStyle } from "@/components/ui/theme";
+import { rentRows } from "@/components/board/rentRows";
 
 const TYPE_LABEL: Record<string, string> = { prop: "Property", rail: "Station", util: "Utility" };
 
@@ -43,7 +44,22 @@ export default function BuyModal({
           <Stat label="Price" value={`$${price}`} />
           <Stat label="Rent" value={rentSummary(space.t, space.rent)} align="right" />
         </StatFrame>
-        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 14, letterSpacing: 0.5, color: COLOR.green }}>
+
+        <div style={{ ...eyebrowStyle(COLOR.cyan), margin: "16px 2px 8px", textAlign: "left" }}>
+          Rent Breakdown
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, textAlign: "left" }}>
+          {rentRows(spaceIndex).map((row) => (
+            <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+              <span style={{ color: COLOR.muted, fontWeight: 500 }}>{row.label}</span>
+              <span className="font-display" style={{ color: row.hot ? "#ffb84d" : COLOR.text, fontWeight: 700, letterSpacing: 0.3 }}>
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 14, fontWeight: 600, fontSize: 14, letterSpacing: 0.5, color: COLOR.green }}>
           Unowned — available for acquisition
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 18 }}>

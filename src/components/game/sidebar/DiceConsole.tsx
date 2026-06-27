@@ -35,8 +35,8 @@ export default function DiceConsole({
         Dice Console
       </div>
       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-        <Die value={dice.d1} rolling={rolling} />
-        <Die value={dice.d2} rolling={rolling} />
+        <Die value={dice.d1} rolling={rolling} index={0} />
+        <Die value={dice.d2} rolling={rolling} index={1} />
       </div>
       <PrimaryButton onClick={onRoll} disabled={!canRoll} style={{ flex: "none", padding: "11px 30px", fontSize: 13, letterSpacing: 1.5 }}>
         {rollLabel}

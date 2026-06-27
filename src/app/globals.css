@@ -36,6 +36,45 @@ button {
     transform: translateY(0) rotate(-4deg);
   }
 }
+/* Dice in flight: leaps up and tumbles through 3D, bobbing as it spins. */
+@keyframes diceTumble {
+  0% {
+    transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-30px) rotateX(200deg) rotateY(120deg) rotateZ(60deg) scale(1.12);
+  }
+  50% {
+    transform: translateY(-6px) rotateX(360deg) rotateY(220deg) rotateZ(140deg) scale(1.04);
+  }
+  75% {
+    transform: translateY(-22px) rotateX(560deg) rotateY(330deg) rotateZ(220deg) scale(1.09);
+  }
+  100% {
+    transform: translateY(0) rotateX(720deg) rotateY(450deg) rotateZ(300deg) scale(1);
+  }
+}
+/* The settle when the dice hit the table: a couple of quick decaying bounces. */
+@keyframes diceLand {
+  0% {
+    transform: translateY(-26px) rotateZ(18deg) scale(1.1);
+  }
+  35% {
+    transform: translateY(0) rotateZ(-6deg) scale(0.92, 1.08);
+  }
+  55% {
+    transform: translateY(-11px) rotateZ(4deg) scale(1.04, 0.96);
+  }
+  75% {
+    transform: translateY(0) rotateZ(-2deg) scale(0.97, 1.03);
+  }
+  88% {
+    transform: translateY(-4px) rotateZ(1deg) scale(1.01, 0.99);
+  }
+  100% {
+    transform: translateY(0) rotateZ(0deg) scale(1);
+  }
+}
 @keyframes popIn {
   0% {
     transform: scale(0.94);
