@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const COLORS = ["#36e0ff", "#b06bff", "#ffd23c", "#2bd9a0", "#ff8090", "#5a8cff"];
+const COLORS = ["#2e9e5b", "#c8202a", "#d8a32a", "#1f7a44", "#e07b25", "#7a4fb0"];
 const DURATION = 2600;
 
 /** A one-shot full-screen confetti burst. Re-fires whenever `trigger` changes. */

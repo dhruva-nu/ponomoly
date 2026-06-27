@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GameState } from "@game/types";
 import { BOARD, isOwnable } from "@game/board";
+import { COLOR } from "@/components/ui/theme";
 import { field, panelButton, sectionTitle, type RunAdmin } from "./adminStyles";
 
 /** Assign / clear property ownership and toggle mortgages. */
@@ -25,11 +26,11 @@ export default function OwnerSection({ state, run }: { state: GameState; run: Ru
         <button onClick={() => run({ kind: "setOwner", pos, owner: owner === "none" ? null : owner })} style={panelButton()}>Assign</button>
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 7, alignItems: "center" }}>
-        <span style={{ fontSize: 11, color: state.mortgaged[pos] ? "#ff8a3c" : "#5f7196", fontWeight: 600 }}>
+        <span style={{ fontSize: 11, color: state.mortgaged[pos] ? COLOR.orange : COLOR.muted, fontWeight: 600 }}>
           {state.mortgaged[pos] ? "Mortgaged" : "Not mortgaged"}
         </span>
-        <button onClick={() => run({ kind: "setMortgage", pos, mortgaged: true })} style={panelButton("#ff8a3c")}>Mortgage</button>
-        <button onClick={() => run({ kind: "setMortgage", pos, mortgaged: false })} style={panelButton("#36e0ff")}>Lift</button>
+        <button onClick={() => run({ kind: "setMortgage", pos, mortgaged: true })} style={panelButton(COLOR.orange)}>Mortgage</button>
+        <button onClick={() => run({ kind: "setMortgage", pos, mortgaged: false })} style={panelButton(COLOR.cyan)}>Lift</button>
       </div>
     </div>
   );

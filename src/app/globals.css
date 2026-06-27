@@ -8,14 +8,14 @@ body {
 }
 body {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
-  background: #05070f;
-  color: #dce6fb;
+  background: #14622f;
+  color: #2c241b;
 }
 input {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
 }
 input::placeholder {
-  color: #5a6d92;
+  color: #a89c84;
 }
 button {
   font-family: var(--font-rajdhani), system-ui, sans-serif;
@@ -97,22 +97,22 @@ button {
 .app-bg {
   position: fixed;
   inset: 0;
-  background: #05070f;
-  background-image: radial-gradient(ellipse at 50% -10%, rgba(54, 224, 255, 0.14) 0, transparent 50%),
-    radial-gradient(ellipse at 90% 110%, rgba(176, 107, 255, 0.12) 0, transparent 45%);
-  color: #dce6fb;
+  background: #14622f;
+  background-image: radial-gradient(ellipse at 50% -5%, rgba(255, 255, 255, 0.1) 0, transparent 55%),
+    radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.28) 0, transparent 55%);
+  color: #2c241b;
   overflow: auto;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 40px 20px;
 }
+/* Subtle woven-felt texture across the table. */
 .app-grid {
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(rgba(120, 180, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 180, 255, 0.045) 1px, transparent 1px);
-  background-size: 48px 48px;
-  animation: gridDrift 18s linear infinite;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 6px 6px;
   pointer-events: none;
 }

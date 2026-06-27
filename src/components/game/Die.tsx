@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { COLOR } from "../ui/theme";
 
 const PIP_LAYOUT: Record<number, number[]> = {
   1: [4],
@@ -46,8 +47,8 @@ export default function Die({
         style={{
           width: 52,
           height: 52,
-          background: "rgba(6,10,22,.95)",
-          border: "1px solid rgba(54,224,255,.4)",
+          background: "#fbf7ea",
+          border: "1px solid rgba(0,0,0,.15)",
           borderRadius: 10,
           display: "grid",
           gridTemplateColumns: "repeat(3,1fr)",
@@ -55,8 +56,8 @@ export default function Die({
           transformStyle: "preserve-3d",
           willChange: "transform",
           boxShadow: rolling
-            ? "0 14px 22px rgba(0,0,0,.5), 0 0 26px rgba(54,224,255,.32), inset 0 0 14px rgba(54,224,255,.08)"
-            : "0 0 18px rgba(54,224,255,.18), inset 0 0 14px rgba(54,224,255,.06)",
+            ? "0 14px 22px rgba(34,24,8,.3)"
+            : "0 6px 18px rgba(34,24,8,.18)",
           animation: rolling ? tumble : landing ? land : "none",
         }}
       >
@@ -68,8 +69,8 @@ export default function Die({
               height: 9,
               borderRadius: "50%",
               placeSelf: "center",
-              background: litPips.includes(cell) ? "#36e0ff" : "transparent",
-              boxShadow: litPips.includes(cell) ? "0 0 7px rgba(54,224,255,.9)" : "none",
+              background: litPips.includes(cell) ? COLOR.ink : "transparent",
+              boxShadow: litPips.includes(cell) ? "inset 0 1px 1px rgba(0,0,0,.4)" : "none",
             }}
           />
         ))}

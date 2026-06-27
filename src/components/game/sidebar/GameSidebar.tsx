@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ClientAction, GameState } from "@game/types";
-import { COLOR } from "@/components/ui/theme";
+import { COLOR, GRADIENT } from "@/components/ui/theme";
 import { PrimaryButton } from "@/components/ui/Buttons";
 import type { GameView } from "../gameView";
 import type { ManageKind } from "../modals/ManageConfirmModal";
@@ -43,13 +43,14 @@ export default function GameSidebar({
     <div style={{ width: 328, flexShrink: 0, display: "flex", flexDirection: "column", gap: 11 }}>
       {state.phase === "ended" && state.winner != null && (
         <div style={{
-          background: "linear-gradient(135deg, rgba(43,217,160,.18), rgba(54,224,255,.12))",
-          border: "1px solid rgba(43,217,160,.5)", borderRadius: 14, padding: 16, textAlign: "center",
+          background: "linear-gradient(135deg, #fdf6e3, #f3e7c6)",
+          border: `2px solid ${COLOR.gold}`, borderRadius: 14, padding: 16, textAlign: "center",
+          boxShadow: "0 6px 18px rgba(34,24,8,.28)",
         }}>
           <div className="font-display" style={{ fontSize: 18, fontWeight: 800, color: COLOR.ink }}>
             {state.players[state.winner].name} WINS
           </div>
-          <div style={{ fontSize: 13, color: COLOR.muted, marginTop: 4 }}>Dominated the grid.</div>
+          <div style={{ fontSize: 13, color: COLOR.muted, marginTop: 4 }}>Bankrupted the board.</div>
         </div>
       )}
 
@@ -57,10 +58,11 @@ export default function GameSidebar({
 
       {view.inJail && (
         <div style={{
-          background: "rgba(255,138,60,.1)", border: "1px solid rgba(255,138,60,.4)", borderRadius: 12,
+          background: "#f6efdd", border: `1px solid ${COLOR.orange}66`, borderRadius: 12,
           padding: "11px 12px", display: "flex", flexDirection: "column", gap: 9,
+          boxShadow: "0 4px 12px rgba(34,24,8,.2)",
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#ff8a3c", textAlign: "center" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: COLOR.orange, textAlign: "center" }}>
             🔒 In Jail — roll doubles to break out
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -69,9 +71,9 @@ export default function GameSidebar({
               disabled={!view.canPayJailFine}
               style={{
                 flex: 1,
-                border: view.canPayJailFine ? "1px solid rgba(255,138,60,.6)" : "1px solid rgba(120,180,255,.2)",
-                background: view.canPayJailFine ? "rgba(255,138,60,.16)" : "rgba(20,30,54,.6)",
-                color: view.canPayJailFine ? "#ffb27a" : COLOR.dim,
+                border: view.canPayJailFine ? "1px solid rgba(255,138,60,.6)" : "1px solid rgba(0,0,0,.15)",
+                background: view.canPayJailFine ? "rgba(255,138,60,.16)" : "rgba(0,0,0,.06)",
+                color: view.canPayJailFine ? COLOR.orange : COLOR.dim,
                 fontWeight: 700, fontSize: 12, padding: "9px 8px", borderRadius: 9,
                 cursor: view.canPayJailFine ? "pointer" : "default",
               }}
@@ -83,8 +85,8 @@ export default function GameSidebar({
               disabled={!view.canUseJailCard}
               style={{
                 flex: 1,
-                border: view.canUseJailCard ? "1px solid rgba(43,217,160,.6)" : "1px solid rgba(120,180,255,.2)",
-                background: view.canUseJailCard ? "rgba(43,217,160,.16)" : "rgba(20,30,54,.6)",
+                border: view.canUseJailCard ? "1px solid rgba(43,217,160,.6)" : "1px solid rgba(0,0,0,.15)",
+                background: view.canUseJailCard ? "rgba(43,217,160,.16)" : "rgba(0,0,0,.06)",
                 color: view.canUseJailCard ? COLOR.green : COLOR.dim,
                 fontWeight: 700, fontSize: 12, padding: "9px 8px", borderRadius: 9,
                 cursor: view.canUseJailCard ? "pointer" : "default",
@@ -96,7 +98,7 @@ export default function GameSidebar({
         </div>
       )}
 
-      <div style={{ textAlign: "center", fontSize: 14, fontWeight: 600, color: view.isMyTurn ? COLOR.green : "#8295b8", letterSpacing: 0.4, padding: "2px 0" }}>
+      <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: view.isMyTurn ? "#bdf0cd" : "rgba(251,247,236,.8)", letterSpacing: 0.4, padding: "2px 0", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>
         {turnLabel}
       </div>
 
@@ -111,23 +113,25 @@ export default function GameSidebar({
       />
 
       <button onClick={onOpenTrade} disabled={!view.canTrade} style={{
-        border: view.canTrade ? "1px solid rgba(176,107,255,.5)" : "1px solid rgba(120,180,255,.2)",
-        background: view.canTrade ? "rgba(176,107,255,.16)" : "rgba(20,30,54,.6)",
-        color: view.canTrade ? COLOR.lavender : COLOR.dim,
+        border: "1px solid rgba(0,0,0,.2)",
+        background: view.canTrade ? GRADIENT.trade : "#e7dcc2",
+        color: view.canTrade ? COLOR.abyss : COLOR.dim,
         fontWeight: 700, fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase",
         padding: 12, borderRadius: 10, cursor: view.canTrade ? "pointer" : "default",
+        boxShadow: view.canTrade ? "0 4px 12px rgba(34,24,8,.28)" : "none",
       }}>
         ⇄ Propose Trade
       </button>
 
       {view.outgoingTrade && (
         <div style={{
-          background: "rgba(176,107,255,.12)", border: "1px solid rgba(176,107,255,.4)", borderRadius: 10,
-          padding: "10px 12px", fontSize: 12, color: "#cdb6ff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          background: "#f1e7cf", border: `1px solid ${COLOR.purple}66`, borderRadius: 10,
+          padding: "10px 12px", fontSize: 12, color: COLOR.purple, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          boxShadow: "0 4px 12px rgba(34,24,8,.22)",
         }}>
           <span>Trade sent to {state.players[view.outgoingTrade.to]?.name ?? "player"} — awaiting reply…</span>
           <button onClick={() => send({ type: "cancelTrade" })} style={{
-            flexShrink: 0, border: "1px solid rgba(255,128,144,.5)", background: "transparent", color: COLOR.rose,
+            flexShrink: 0, border: `1px solid ${COLOR.rose}`, background: "#fff8f0", color: COLOR.rose,
             fontWeight: 700, fontSize: 11, padding: "4px 9px", borderRadius: 7, cursor: "pointer",
           }}>
             Cancel
@@ -135,14 +139,18 @@ export default function GameSidebar({
         </div>
       )}
 
-      <PrimaryButton onClick={() => send({ type: "endTurn" })} disabled={!view.canEnd} style={{ flex: "none", padding: 13, letterSpacing: 1.5 }}>
+      <PrimaryButton onClick={() => send({ type: "endTurn" })} disabled={!view.canEnd} style={{ flex: "none", padding: 13, letterSpacing: 1.5, border: "1px solid rgba(0,0,0,.22)", boxShadow: view.canEnd ? "0 4px 14px rgba(34,24,8,.32)" : "none" }}>
         End Turn
       </PrimaryButton>
 
       {view.canSurrender &&
         (confirmSurrender ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ flex: 1, fontSize: 11, color: COLOR.rose, fontWeight: 600 }}>
+          <div style={{
+            display: "flex", gap: 8, alignItems: "center",
+            background: "#f1e7cf", border: "1px solid rgba(0,0,0,.18)", borderRadius: 10,
+            padding: "9px 11px", boxShadow: "0 4px 12px rgba(34,24,8,.22)",
+          }}>
+            <span style={{ flex: 1, fontSize: 11, color: COLOR.text, fontWeight: 600 }}>
               Quit and auction off everything you own?
             </span>
             <button
@@ -151,7 +159,7 @@ export default function GameSidebar({
                 setConfirmSurrender(false);
               }}
               style={{
-                border: "1px solid rgba(255,90,110,.6)", background: "rgba(255,90,110,.16)", color: COLOR.red,
+                border: "1px solid rgba(0,0,0,.2)", background: GRADIENT.danger, color: COLOR.abyss,
                 fontWeight: 700, fontSize: 11, padding: "6px 10px", borderRadius: 7, cursor: "pointer", flexShrink: 0,
               }}
             >
@@ -160,7 +168,7 @@ export default function GameSidebar({
             <button
               onClick={() => setConfirmSurrender(false)}
               style={{
-                border: "1px solid rgba(120,180,255,.3)", background: "transparent", color: COLOR.muted,
+                border: "1px solid rgba(0,0,0,.2)", background: "#fffaf0", color: COLOR.muted,
                 fontWeight: 700, fontSize: 11, padding: "6px 10px", borderRadius: 7, cursor: "pointer", flexShrink: 0,
               }}
             >
@@ -171,9 +179,9 @@ export default function GameSidebar({
           <button
             onClick={() => setConfirmSurrender(true)}
             style={{
-              border: "1px solid rgba(255,90,110,.35)", background: "transparent", color: COLOR.rose,
+              border: `1px solid ${COLOR.red}66`, background: "#f3e9d2", color: COLOR.red,
               fontWeight: 700, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase",
-              padding: 9, borderRadius: 10, cursor: "pointer",
+              padding: 10, borderRadius: 10, cursor: "pointer", boxShadow: "0 3px 8px rgba(34,24,8,.2)",
             }}
           >
             🏳 Surrender
