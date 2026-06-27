@@ -9,6 +9,7 @@ import type { ManageKind } from "../modals/ManageConfirmModal";
 import DiceConsole from "./DiceConsole";
 import Portfolio from "./Portfolio";
 import ActivityLog from "./ActivityLog";
+import RentAgreements from "./RentAgreements";
 
 export default function GameSidebar({
   state,
@@ -122,6 +123,8 @@ export default function GameSidebar({
       }}>
         ⇄ Propose Trade
       </button>
+
+      <RentAgreements state={state} />
 
       {view.outgoingTrade && (
         <div style={{

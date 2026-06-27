@@ -84,6 +84,37 @@ export interface Dice {
   rolled: boolean;
 }
 
+/** How a custom rent clause modifies the rent its beneficiary owes:
+ *  - `waive`   — pay nothing
+ *  - `percent` — pay `value`% of the normal rent (0–100)
+ *  - `fixed`   — pay a flat `value` (capped at the normal rent, never more) */
+export type RentRuleMode = "waive" | "percent" | "fixed";
+
+/** A custom rent clause attached to a trade offer. Directional within the trade:
+ *  `beneficiary` names which side of THIS trade gets the discounted rent. */
+export interface TradeRentRule {
+  /** which trade party enjoys the reduced rent: the proposer or the recipient */
+  beneficiary: "from" | "to";
+  mode: RentRuleMode;
+  /** percent (0–100) when mode is `percent`; flat dollars when `fixed`; unused for `waive` */
+  value: number;
+  /** how many of the beneficiary's own upcoming turns the clause stays in force */
+  turns: number;
+}
+
+/** A live rent agreement: `payer` owes reduced rent to `payee` for `turnsLeft`
+ *  more of the payer's turns. Instantiated from a `TradeRentRule` on acceptance. */
+export interface RentAgreement {
+  /** player index who enjoys the reduced rent */
+  payer: number;
+  /** landlord player index whose rent is reduced (the other trade party) */
+  payee: number;
+  mode: RentRuleMode;
+  value: number;
+  /** the payer's remaining turns before the agreement lapses */
+  turnsLeft: number;
+}
+
 /** An outstanding trade offer awaiting the recipient's response. */
 export interface PendingTrade {
   /** proposer player index */
@@ -98,6 +129,8 @@ export interface PendingTrade {
   offerCash: number;
   /** cash the proposer wants from the recipient */
   requestCash: number;
+  /** custom rent clauses bundled into the offer (empty when none) */
+  rules: TradeRentRule[];
 }
 
 /**
@@ -151,6 +184,9 @@ export interface GameState {
   pendingBuy: number | null;
   pendingTrade: PendingTrade | null;
   pendingRent: PendingRent | null;
+  /** live custom rent agreements struck through trades; each lapses after a set
+   *  number of the payer's turns. Empty when no clauses are in force. */
+  rentAgreements: RentAgreement[];
   /** a live property auction awaiting bids, else null */
   pendingAuction: Auction | null;
   /** space indices queued to be auctioned one at a time (e.g. the estate of a

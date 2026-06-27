@@ -1,9 +1,52 @@
 import type { ClientAction } from "../protocol";
+import type { RentAgreement, RentRuleMode, TradeRentRule } from "../types";
 import { BOARD } from "../board";
 import { appendLog, clampInt, recomputeOwnedProperties } from "../helpers";
 import type { ActionContext, HandlerError } from "./context";
 
 type Of<T extends ClientAction["type"]> = Extract<ClientAction, { type: T }>;
+
+/** At most this many custom rent clauses may ride along with a single trade. */
+const MAX_RULES = 8;
+/** Upper bound on how long a clause can stay in force. */
+const MAX_RULE_TURNS = 50;
+/** Upper bound on a flat (`fixed`) rent amount. */
+const MAX_FIXED_RENT = 100_000;
+const RULE_MODES: RentRuleMode[] = ["waive", "percent", "fixed"];
+
+/** Sanitize untrusted custom rent clauses into a clean, bounded list, dropping
+ *  any that are malformed. Returns null if a clause is structurally invalid. */
+function sanitizeRules(raw: unknown): TradeRentRule[] | null {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.length > MAX_RULES) return null;
+  const rules: TradeRentRule[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") return null;
+    const { beneficiary, mode } = entry as Partial<TradeRentRule>;
+    if (beneficiary !== "from" && beneficiary !== "to") return null;
+    if (!RULE_MODES.includes(mode as RentRuleMode)) return null;
+    const turns = clampInt((entry as TradeRentRule).turns, 1, MAX_RULE_TURNS, 0);
+    if (turns < 1) return null;
+    const value =
+      mode === "waive"
+        ? 0
+        : mode === "percent"
+          ? clampInt((entry as TradeRentRule).value, 0, 100, -1)
+          : clampInt((entry as TradeRentRule).value, 0, MAX_FIXED_RENT, -1);
+    if (value < 0) return null;
+    rules.push({ beneficiary: beneficiary as "from" | "to", mode: mode as RentRuleMode, value, turns });
+  }
+  return rules;
+}
+
+/** Describe a clause for the activity log, from the perspective of the player who
+ *  ends up paying the reduced rent. */
+function describeRule(rule: TradeRentRule, payerName: string, payeeName: string): string {
+  const span = `for ${rule.turns} ${rule.turns === 1 ? "turn" : "turns"}`;
+  if (rule.mode === "waive") return `${payerName} pays no rent to ${payeeName} ${span}`;
+  if (rule.mode === "percent") return `${payerName} pays ${rule.value}% rent to ${payeeName} ${span}`;
+  return `${payerName} pays at most $${rule.value} rent to ${payeeName} ${span}`;
+}
 
 export function handleProposeTrade(ctx: ActionContext, action: Of<"proposeTrade">): HandlerError {
   const { state, index } = ctx;
@@ -30,12 +73,17 @@ export function handleProposeTrade(ctx: ActionContext, action: Of<"proposeTrade"
 
   const offerCash = clampInt(action.offerCash, 0, state.players[index].cash, 0);
   const requestCash = clampInt(action.requestCash, 0, state.players[recipient].cash, 0);
-  if (offerProps.length + requestProps.length + offerCash + requestCash === 0) {
+
+  const rules = sanitizeRules(action.rules);
+  if (rules === null) return "That trade has an invalid rent clause.";
+
+  if (offerProps.length + requestProps.length + offerCash + requestCash + rules.length === 0) {
     return "An empty trade isn't much of a trade.";
   }
 
-  state.pendingTrade = { from: index, to: recipient, offerProps, requestProps, offerCash, requestCash };
-  appendLog(state, `${state.players[index].name} proposed a trade to ${state.players[recipient].name}.`);
+  state.pendingTrade = { from: index, to: recipient, offerProps, requestProps, offerCash, requestCash, rules };
+  const clauseNote = rules.length > 0 ? ` with ${rules.length} rent ${rules.length === 1 ? "clause" : "clauses"}` : "";
+  appendLog(state, `${state.players[index].name} proposed a trade to ${state.players[recipient].name}${clauseNote}.`);
 }
 
 export function handleRespondTrade(ctx: ActionContext, action: Of<"respondTrade">): HandlerError {
@@ -64,6 +112,17 @@ export function handleRespondTrade(ctx: ActionContext, action: Of<"respondTrade"
   recomputeOwnedProperties(state, trade.to);
   from.cash += trade.requestCash - trade.offerCash;
   to.cash += trade.offerCash - trade.requestCash;
+
+  // Instantiate each accepted clause into a live rent agreement. The beneficiary
+  // is the discounted payer; the other trade party is the landlord (payee).
+  for (const rule of trade.rules ?? []) {
+    const payer = rule.beneficiary === "from" ? trade.from : trade.to;
+    const payee = rule.beneficiary === "from" ? trade.to : trade.from;
+    const agreement: RentAgreement = { payer, payee, mode: rule.mode, value: rule.value, turnsLeft: rule.turns };
+    state.rentAgreements.push(agreement);
+    appendLog(state, describeRule(rule, state.players[payer].name, state.players[payee].name) + ".");
+  }
+
   state.pendingTrade = null;
   appendLog(state, `${from.name} and ${to.name} completed a trade.`);
 }

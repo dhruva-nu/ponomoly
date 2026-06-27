@@ -2,7 +2,7 @@ import type { Auction, GameState } from "./types";
 import { BOARD, isOwnable } from "./board";
 import { AUCTION_DURATION_MS, BOARD_SIZE, GO_SALARY, JAIL_INDEX } from "./constants";
 import { appendLog, solventPlayerIndices } from "./helpers";
-import { rentFor } from "./rent";
+import { discountedRent, rentFor } from "./rent";
 import { type Card, type DeckType, drawCard, type RandomSource } from "./rng";
 
 /**
@@ -33,7 +33,27 @@ function removeFromPlay(state: GameState, playerIdx: number): number[] {
       auction.highBid = 0;
     }
   }
+  // Drop any rent agreements this player was party to — a departed landlord can't
+  // grant a discount, and a departed payer can't collect one.
+  state.rentAgreements = state.rentAgreements.filter(
+    (a) => a.payer !== playerIdx && a.payee !== playerIdx,
+  );
   return estate;
+}
+
+/** Tick down the rent agreements `playerIdx` benefits from at the end of their
+ *  turn, retiring any that have run their course. */
+function expireRentAgreements(state: GameState, playerIdx: number): void {
+  if (state.rentAgreements.length === 0) return;
+  state.rentAgreements = state.rentAgreements.filter((agreement) => {
+    if (agreement.payer !== playerIdx) return true;
+    agreement.turnsLeft -= 1;
+    if (agreement.turnsLeft > 0) return true;
+    const payer = state.players[agreement.payer]?.name ?? "A player";
+    const payee = state.players[agreement.payee]?.name ?? "another player";
+    appendLog(state, `${payer}'s rent clause on ${payee}'s properties expired.`);
+    return false;
+  });
 }
 
 /** If a player's cash went negative, bust them and release their assets to the
@@ -250,15 +270,20 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
     state.pendingBuy = position;
     appendLog(state, `${player.name} landed on ${space.name}.`);
   } else if (owner !== turn) {
-    const rent = rentFor(
+    const fullRent = rentFor(
       position,
       state.owners,
       state.dice.d1 + state.dice.d2,
       state.buildings,
       state.mortgaged,
     );
+    const rent = discountedRent(state.rentAgreements, fullRent, turn, owner);
     state.pendingRent = { pos: position, amount: rent, original: rent, to: owner, payer: turn, negotiating: false };
-    appendLog(state, `${player.name} owes $${rent} rent to ${state.players[owner].name}.`);
+    if (rent < fullRent) {
+      appendLog(state, `${player.name} owes $${rent} rent to ${state.players[owner].name} (was $${fullRent}, trade clause applied).`);
+    } else {
+      appendLog(state, `${player.name} owes $${rent} rent to ${state.players[owner].name}.`);
+    }
   } else {
     appendLog(state, `${player.name} holds ${space.name}.`);
   }
@@ -266,6 +291,8 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
 
 /** Hand the turn to the next solvent player, or end the game if only one remains. */
 export function advanceTurn(state: GameState): void {
+  // The player whose turn is ending spends one turn of any clauses they benefit from.
+  expireRentAgreements(state, state.turn);
   const survivors = solventPlayerIndices(state);
   if (survivors.length <= 1) {
     state.phase = "ended";
