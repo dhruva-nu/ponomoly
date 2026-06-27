@@ -1,0 +1,44 @@
+import { BOARD, RENT_MULT, colorGroup, ownsWholeGroup } from "./board";
+
+/** Count how many spaces of a given type the owner of `spaceIndex` holds. */
+function countOwnedOfType(
+  owners: Record<number, number>,
+  owner: number,
+  type: string,
+): number {
+  let count = 0;
+  for (const key in owners) {
+    if (owners[key] === owner && BOARD[+key].t === type) count++;
+  }
+  return count;
+}
+
+/** Rent owed when a player lands on space `spaceIndex` owned by someone else. */
+export function rentFor(
+  spaceIndex: number,
+  owners: Record<number, number>,
+  diceTotal: number,
+  buildings: Record<number, number> = {},
+  mortgaged: Record<number, boolean> = {},
+): number {
+  const space = BOARD[spaceIndex];
+  const owner = owners[spaceIndex];
+  if (mortgaged[spaceIndex]) return 0; // mortgaged properties collect no rent
+
+  if (space.t === "prop") {
+    const baseRent = space.rent!; // every property defines a base rent
+    const buildingLevel = buildings[spaceIndex] || 0;
+    if (buildingLevel > 0) return baseRent * (RENT_MULT[buildingLevel] ?? 1);
+    // Unimproved: rent doubles when the owner holds the whole color group.
+    const hasMonopoly = ownsWholeGroup(colorGroup(spaceIndex), owners, owner);
+    return baseRent * (hasMonopoly ? 2 : 1);
+  }
+  if (space.t === "rail") {
+    return 25 * countOwnedOfType(owners, owner, "rail");
+  }
+  if (space.t === "util") {
+    const utilitiesOwned = countOwnedOfType(owners, owner, "util");
+    return diceTotal * (utilitiesOwned >= 2 ? 10 : 4);
+  }
+  return 0;
+}
