@@ -18,3 +18,13 @@ export const JAIL_INDEX = 10;
 
 /** Total number of spaces on the board. */
 export const BOARD_SIZE = 40;
+
+/** How long an auction stays open after it opens, before any bids (ms). */
+export const AUCTION_DURATION_MS = 20_000;
+
+/** The clock is reset to this much time after each accepted bid (ms), so late
+ *  bidders always get a chance to respond. */
+export const AUCTION_BID_EXTENSION_MS = 10_000;
+
+/** Smallest amount a new bid must exceed the standing high bid by. */
+export const AUCTION_MIN_INCREMENT = 10;

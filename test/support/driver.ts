@@ -17,11 +17,19 @@ export interface ApplyResult {
  */
 export class GameDriver {
   state: GameState = createInitialState();
+  /** Virtual clock (ms) handed to the engine for auction timing. */
+  clock = 0;
 
   apply(connectionId: string, action: ClientAction, random: RandomSource = () => 0): ApplyResult {
-    const result = applyAction(this.state, connectionId, action, random);
+    const result = applyAction(this.state, connectionId, action, random, this.clock);
     if (!result.error) this.state = result.state;
     return result;
+  }
+
+  /** Advance the virtual clock by `ms` (to drive auction deadlines). */
+  advance(ms: number): this {
+    this.clock += ms;
+    return this;
   }
 
   admin(cmd: AdminCmd, connectionId = "admin"): ApplyResult {

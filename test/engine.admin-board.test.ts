@@ -95,6 +95,31 @@ describe("kick", () => {
     expect(game.state.hostId).toBeNull();
     expect(game.state.phase).toBe("lobby");
   });
+
+  it("auctions a kicked player's estate among the survivors mid-game", () => {
+    const game = startedGame(["Ada", "Bo", "Cy"]);
+    game.admin({ kind: "setOwner", pos: 6, owner: 1 }); // Bo holds two spaces
+    game.admin({ kind: "setOwner", pos: 8, owner: 1 });
+    game.admin({ kind: "kick", target: 1 });
+    expect(game.state.players.map((p) => p.name)).toEqual(["Ada", "Cy"]);
+    expect(game.state.owners[6]).toBeUndefined();
+    // Survivors are reindexed: Ada=0, Cy=1.
+    expect(game.state.pendingAuction).toMatchObject({ pos: 6, active: [0, 1] });
+    expect(game.state.auctionQueue).toEqual([8]);
+  });
+
+  it("does not auction a kicked seat outside of play, nor when it leaves a lone player", () => {
+    const lobby = seatPlayers(["Ada", "Bo"]);
+    lobby.admin({ kind: "setOwner", pos: 6, owner: 1 });
+    lobby.admin({ kind: "kick", target: 1 });
+    expect(lobby.state.pendingAuction).toBeNull();
+
+    const duel = startedGame(["Ada", "Bo"]);
+    duel.admin({ kind: "setOwner", pos: 6, owner: 1 });
+    duel.admin({ kind: "kick", target: 1 }); // only Ada remains — nobody to bid
+    expect(duel.state.pendingAuction).toBeNull();
+    expect(duel.state.owners[6]).toBeUndefined();
+  });
 });
 
 describe("replaceState", () => {

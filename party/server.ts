@@ -21,11 +21,37 @@ export default class PonomolyServer implements Party.Server {
     if (saved) {
       // Backfill fields added after this room was last persisted.
       this.state = normalizeState(saved);
+      // An auction may have been mid-flight when the room slept — re-arm its
+      // alarm (it fires immediately if the deadline already passed).
+      await this.syncAuctionAlarm();
     }
+  }
+
+  /** Fires when an auction's deadline arrives: settle it and broadcast. */
+  async onAlarm() {
+    if (!this.state.pendingAuction) return;
+    const { state } = applyAction(this.state, "server", { type: "tickAuction" });
+    this.state = state;
+    await this.save();
+    this.broadcast();
+    await this.report();
+    // A bid at the buzzer can extend the deadline — re-arm for the new one.
+    await this.syncAuctionAlarm();
   }
 
   private async save() {
     await this.room.storage.put(STORAGE_KEY, this.state);
+  }
+
+  /** Keep the room alarm aligned with the live auction deadline (the alarm is
+   *  what closes an auction nobody else acts on). Cleared when none is running. */
+  private async syncAuctionAlarm() {
+    const auction = this.state.pendingAuction;
+    if (auction) {
+      await this.room.storage.setAlarm(auction.endsAt);
+    } else {
+      await this.room.storage.deleteAlarm();
+    }
   }
 
   /** A snapshot of this room for the management directory. */
@@ -136,6 +162,7 @@ export default class PonomolyServer implements Party.Server {
     await this.save();
     this.broadcast();
     await this.report();
+    await this.syncAuctionAlarm();
   }
 
   async onClose(conn: Party.Connection) {

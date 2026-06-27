@@ -65,6 +65,24 @@ export interface PendingTrade {
   requestCash: number;
 }
 
+/**
+ * A live auction for a single unowned property, opened when the player who
+ * landed on it declines (or cannot afford) the purchase. Every solvent player
+ * may bid; the highest bid when the clock runs out wins.
+ */
+export interface Auction {
+  /** space index being auctioned */
+  pos: number;
+  /** the highest bid so far (0 until the first bid lands) */
+  highBid: number;
+  /** player index of the current high bidder, or null before any bid */
+  highBidder: number | null;
+  /** player indices still in the running (not folded, not bankrupt) */
+  active: number[];
+  /** epoch-ms deadline; the auction resolves at/after this instant */
+  endsAt: number;
+}
+
 /** Rent the current player owes and must confirm paying. */
 export interface PendingRent {
   pos: number;
@@ -98,6 +116,11 @@ export interface GameState {
   pendingBuy: number | null;
   pendingTrade: PendingTrade | null;
   pendingRent: PendingRent | null;
+  /** a live property auction awaiting bids, else null */
+  pendingAuction: Auction | null;
+  /** space indices queued to be auctioned one at a time (e.g. the estate of a
+   *  player who quit or was removed); the head opens once `pendingAuction` clears */
+  auctionQueue: number[];
   /** most recent dice total, for client animation */
   lastRoll: number | null;
   log: string[];
