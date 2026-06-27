@@ -1,4 +1,4 @@
-import type { PropRent, RailRent, Space, SpaceType } from "./types";
+import type { PropRent, RailRent, RentRuleScope, Space, SpaceType } from "./types";
 import rawBoardConfig from "./board.config.json";
 
 export const TOKENS = ["♠", "♥", "♦", "♣", "★", "◆", "●", "▲"];
@@ -225,6 +225,37 @@ export function unmortgageCost(spaceIndex: number): number {
 /** Cash refunded for selling one house/hotel back to the bank (half build cost). */
 export function sellValue(spaceIndex: number): number {
   return Math.floor(houseCost(spaceIndex) / 2);
+}
+
+/** Human-friendly name for a property-group color hex (the eight built-in
+ *  groups). Falls back to the raw hex for colors the editor introduced. */
+export function colorLabel(color: string): string {
+  const NAMES: Record<string, string> = {
+    [GROUP_COLOR.brown]: "brown",
+    [GROUP_COLOR.lblue]: "light blue",
+    [GROUP_COLOR.pink]: "pink",
+    [GROUP_COLOR.orange]: "orange",
+    [GROUP_COLOR.red]: "red",
+    [GROUP_COLOR.yellow]: "yellow",
+    [GROUP_COLOR.green]: "green",
+    [GROUP_COLOR.blue]: "blue",
+  };
+  return NAMES[color] ?? color;
+}
+
+/** True when a rent clause with `scope` applies to the property at `spaceIndex`. */
+export function scopeMatchesSpace(scope: RentRuleScope, spaceIndex: number): boolean {
+  if (scope.kind === "all") return true;
+  if (scope.kind === "site") return scope.space === spaceIndex;
+  return BOARD[spaceIndex]?.t === "prop" && BOARD[spaceIndex]?.c === scope.color;
+}
+
+/** A sentence fragment naming what a clause's scope covers (" on …"), or "" for
+ *  a board-wide clause. */
+export function rentScopeSuffix(scope: RentRuleScope): string {
+  if (scope.kind === "site") return ` on ${BOARD[scope.space]?.name ?? "a property"}`;
+  if (scope.kind === "color") return ` on the ${colorLabel(scope.color)} group`;
+  return "";
 }
 
 /** True when every space index in `group` is owned by `playerIndex`. */

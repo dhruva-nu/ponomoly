@@ -90,6 +90,15 @@ export interface Dice {
  *  - `fixed`   — pay a flat `value` (capped at the normal rent, never more) */
 export type RentRuleMode = "waive" | "percent" | "fixed";
 
+/** Which of the landlord's properties a rent clause covers:
+ *  - `all`   — every property the landlord owns
+ *  - `color` — only properties in one color group
+ *  - `site`  — only a single property */
+export type RentRuleScope =
+  | { kind: "all" }
+  | { kind: "color"; color: string }
+  | { kind: "site"; space: number };
+
 /** A custom rent clause attached to a trade offer. Directional within the trade:
  *  `beneficiary` names which side of THIS trade gets the discounted rent. */
 export interface TradeRentRule {
@@ -100,6 +109,8 @@ export interface TradeRentRule {
   value: number;
   /** how many of the beneficiary's own upcoming turns the clause stays in force */
   turns: number;
+  /** which of the landlord's properties the clause covers */
+  scope: RentRuleScope;
 }
 
 /** A live rent agreement: `payer` owes reduced rent to `payee` for `turnsLeft`
@@ -111,6 +122,8 @@ export interface RentAgreement {
   payee: number;
   mode: RentRuleMode;
   value: number;
+  /** which of the payee's properties the discount covers */
+  scope: RentRuleScope;
   /** the payer's remaining turns before the agreement lapses */
   turnsLeft: number;
 }

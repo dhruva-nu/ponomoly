@@ -1,4 +1,4 @@
-import { BOARD, colorGroup, ownsWholeGroup, propRentFor, railRentFor } from "./board";
+import { BOARD, colorGroup, ownsWholeGroup, propRentFor, railRentFor, scopeMatchesSpace } from "./board";
 import type { RentAgreement } from "./types";
 
 /** Count how many spaces of a given type the owner of `spaceIndex` holds. */
@@ -42,19 +42,22 @@ export function rentFor(
   return 0;
 }
 
-/** Apply the rent owed by `payer` to landlord `payee` against any live
- *  agreements between them. When several agreements match, the one most
- *  favourable to the payer (lowest resulting rent) wins. A `fixed` clause never
- *  charges more than the normal rent, so an agreement is always a discount. */
+/** Apply the rent owed by `payer` to landlord `payee` for landing on
+ *  `spaceIndex`, against any live agreements between them whose scope covers that
+ *  space. When several match, the one most favourable to the payer (lowest
+ *  resulting rent) wins. A `fixed` clause never charges more than the normal
+ *  rent, so an agreement is always a discount. */
 export function discountedRent(
   agreements: RentAgreement[],
   rent: number,
   payer: number,
   payee: number,
+  spaceIndex: number,
 ): number {
   let best = rent;
   for (const agreement of agreements) {
     if (agreement.payer !== payer || agreement.payee !== payee) continue;
+    if (!scopeMatchesSpace(agreement.scope, spaceIndex)) continue;
     let reduced = rent;
     if (agreement.mode === "waive") reduced = 0;
     else if (agreement.mode === "percent") reduced = Math.round((rent * agreement.value) / 100);

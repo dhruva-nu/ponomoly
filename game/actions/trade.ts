@@ -1,6 +1,6 @@
 import type { ClientAction } from "../protocol";
-import type { RentAgreement, RentRuleMode, TradeRentRule } from "../types";
-import { BOARD } from "../board";
+import type { RentAgreement, RentRuleMode, RentRuleScope, TradeRentRule } from "../types";
+import { BOARD, isOwnable, rentScopeSuffix } from "../board";
 import { appendLog, clampInt, recomputeOwnedProperties } from "../helpers";
 import type { ActionContext, HandlerError } from "./context";
 
@@ -13,6 +13,29 @@ const MAX_RULE_TURNS = 50;
 /** Upper bound on a flat (`fixed`) rent amount. */
 const MAX_FIXED_RENT = 100_000;
 const RULE_MODES: RentRuleMode[] = ["waive", "percent", "fixed"];
+
+/** Validate and normalize an untrusted clause scope, or return null if invalid.
+ *  A missing scope defaults to board-wide ("all"). */
+function sanitizeScope(raw: unknown): RentRuleScope | null {
+  if (raw === undefined || raw === null) return { kind: "all" };
+  if (typeof raw !== "object") return null;
+  const scope = raw as Partial<RentRuleScope> & { kind?: string };
+  if (scope.kind === "all") return { kind: "all" };
+  if (scope.kind === "color") {
+    const color = (scope as { color?: unknown }).color;
+    if (typeof color !== "string" || color.length === 0) return null;
+    // Must name a real property color somewhere on the board.
+    if (!BOARD.some((s) => s.t === "prop" && s.c === color)) return null;
+    return { kind: "color", color };
+  }
+  if (scope.kind === "site") {
+    const space = (scope as { space?: unknown }).space;
+    if (typeof space !== "number" || !Number.isInteger(space)) return null;
+    if (space < 0 || space >= BOARD.length || !isOwnable(BOARD[space].t)) return null;
+    return { kind: "site", space };
+  }
+  return null;
+}
 
 /** Sanitize untrusted custom rent clauses into a clean, bounded list, dropping
  *  any that are malformed. Returns null if a clause is structurally invalid. */
@@ -34,7 +57,9 @@ function sanitizeRules(raw: unknown): TradeRentRule[] | null {
           ? clampInt((entry as TradeRentRule).value, 0, 100, -1)
           : clampInt((entry as TradeRentRule).value, 0, MAX_FIXED_RENT, -1);
     if (value < 0) return null;
-    rules.push({ beneficiary: beneficiary as "from" | "to", mode: mode as RentRuleMode, value, turns });
+    const scope = sanitizeScope((entry as { scope?: unknown }).scope);
+    if (scope === null) return null;
+    rules.push({ beneficiary: beneficiary as "from" | "to", mode: mode as RentRuleMode, value, turns, scope });
   }
   return rules;
 }
@@ -43,9 +68,10 @@ function sanitizeRules(raw: unknown): TradeRentRule[] | null {
  *  ends up paying the reduced rent. */
 function describeRule(rule: TradeRentRule, payerName: string, payeeName: string): string {
   const span = `for ${rule.turns} ${rule.turns === 1 ? "turn" : "turns"}`;
-  if (rule.mode === "waive") return `${payerName} pays no rent to ${payeeName} ${span}`;
-  if (rule.mode === "percent") return `${payerName} pays ${rule.value}% rent to ${payeeName} ${span}`;
-  return `${payerName} pays at most $${rule.value} rent to ${payeeName} ${span}`;
+  const where = rentScopeSuffix(rule.scope);
+  if (rule.mode === "waive") return `${payerName} pays no rent to ${payeeName}${where} ${span}`;
+  if (rule.mode === "percent") return `${payerName} pays ${rule.value}% rent to ${payeeName}${where} ${span}`;
+  return `${payerName} pays at most $${rule.value} rent to ${payeeName}${where} ${span}`;
 }
 
 export function handleProposeTrade(ctx: ActionContext, action: Of<"proposeTrade">): HandlerError {
@@ -118,7 +144,7 @@ export function handleRespondTrade(ctx: ActionContext, action: Of<"respondTrade"
   for (const rule of trade.rules ?? []) {
     const payer = rule.beneficiary === "from" ? trade.from : trade.to;
     const payee = rule.beneficiary === "from" ? trade.to : trade.from;
-    const agreement: RentAgreement = { payer, payee, mode: rule.mode, value: rule.value, turnsLeft: rule.turns };
+    const agreement: RentAgreement = { payer, payee, mode: rule.mode, value: rule.value, scope: rule.scope, turnsLeft: rule.turns };
     state.rentAgreements.push(agreement);
     appendLog(state, describeRule(rule, state.players[payer].name, state.players[payee].name) + ".");
   }

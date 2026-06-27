@@ -7,7 +7,7 @@ import { PrimaryButton } from "@/components/ui/Buttons";
 import { COLOR, GRADIENT, chipButtonStyle } from "@/components/ui/theme";
 import { CashField, PropPickRow, RentRuleRow } from "./tradeControls";
 
-const newRule = (): TradeRentRule => ({ beneficiary: "from", mode: "waive", value: 0, turns: 3 });
+const newRule = (): TradeRentRule => ({ beneficiary: "from", mode: "waive", value: 0, turns: 3, scope: { kind: "all" } });
 
 const clampCash = (value: number, max: number) => Math.max(0, Math.min(max, Math.round(value) || 0));
 const colHead: CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 };
@@ -115,15 +115,22 @@ export default function TradeBuilderModal({
               Temporarily reduce the rent one side owes the other (e.g. no rent for 5 turns, or 50% off).
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {rules.map((rule, i) => (
-                <RentRuleRow
-                  key={i}
-                  rule={rule}
-                  themName={themName}
-                  onChange={(next) => updateRule(i, next)}
-                  onRemove={() => removeRule(i)}
-                />
-              ))}
+              {rules.map((rule, i) => {
+                // The landlord whose properties the clause scopes over is the
+                // party NOT benefiting from the discount.
+                const payeeIdx = rule.beneficiary === "from" ? target : myIndex;
+                const payeeProps = payeeIdx != null ? state.players[payeeIdx]?.properties ?? [] : [];
+                return (
+                  <RentRuleRow
+                    key={i}
+                    rule={rule}
+                    themName={themName}
+                    payeeProps={payeeProps}
+                    onChange={(next) => updateRule(i, next)}
+                    onRemove={() => removeRule(i)}
+                  />
+                );
+              })}
             </div>
           </div>
 

@@ -1,8 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import type { RentRuleMode, TradeRentRule } from "@game/types";
-import { BOARD, spaceColor } from "@game/board";
+import type { RentRuleMode, RentRuleScope, TradeRentRule } from "@game/types";
+import { BOARD, colorLabel, rentScopeSuffix, spaceColor } from "@game/board";
 import { COLOR } from "@/components/ui/theme";
 
 /** A selectable property row in the trade builder. */
@@ -46,9 +46,10 @@ export function tradeRuleText(rule: TradeRentRule, fromName: string, toName: str
   const payer = rule.beneficiary === "from" ? fromName : toName;
   const payee = rule.beneficiary === "from" ? toName : fromName;
   const span = `for ${rule.turns} ${rule.turns === 1 ? "turn" : "turns"}`;
-  if (rule.mode === "waive") return `${payer} pays no rent to ${payee} ${span}`;
-  if (rule.mode === "percent") return `${payer} pays ${rule.value}% rent to ${payee} ${span}`;
-  return `${payer} pays at most $${rule.value} rent to ${payee} ${span}`;
+  const where = rentScopeSuffix(rule.scope);
+  if (rule.mode === "waive") return `${payer} pays no rent to ${payee}${where} ${span}`;
+  if (rule.mode === "percent") return `${payer} pays ${rule.value}% rent to ${payee}${where} ${span}`;
+  return `${payer} pays at most $${rule.value} rent to ${payee}${where} ${span}`;
 }
 
 const ruleSelect: CSSProperties = {
@@ -63,18 +64,32 @@ const ruleSelect: CSSProperties = {
 };
 const ruleNumber: CSSProperties = { ...ruleSelect, width: 56 };
 
-/** An editable custom rent clause: who pays less, how much, and for how long. */
+/** An editable custom rent clause: who pays less, how much, on which of the
+ *  landlord's properties, and for how long. `payeeProps` is the property set the
+ *  current landlord (the non-beneficiary party) owns, used to populate the scope. */
 export function RentRuleRow({
   rule,
   themName,
+  payeeProps,
   onChange,
   onRemove,
 }: {
   rule: TradeRentRule;
   themName: string;
+  payeeProps: number[];
   onChange: (next: TradeRentRule) => void;
   onRemove: () => void;
 }) {
+  // Distinct color groups present among the landlord's properties.
+  const colors = [...new Set(payeeProps.filter((p) => BOARD[p].t === "prop").map((p) => BOARD[p].c!))];
+  const sites = [...payeeProps];
+
+  const setScopeKind = (kind: RentRuleScope["kind"]) => {
+    if (kind === "color") onChange({ ...rule, scope: { kind: "color", color: colors[0] ?? "" } });
+    else if (kind === "site") onChange({ ...rule, scope: { kind: "site", space: sites[0] ?? -1 } });
+    else onChange({ ...rule, scope: { kind: "all" } });
+  };
+
   return (
     <div
       style={{
@@ -91,7 +106,7 @@ export function RentRuleRow({
     >
       <select
         value={rule.beneficiary}
-        onChange={(e) => onChange({ ...rule, beneficiary: e.target.value as "from" | "to" })}
+        onChange={(e) => onChange({ ...rule, beneficiary: e.target.value as "from" | "to", scope: { kind: "all" } })}
         style={ruleSelect}
         aria-label="Who pays the reduced rent"
       >
@@ -118,6 +133,41 @@ export function RentRuleRow({
           style={ruleNumber}
           aria-label={rule.mode === "percent" ? "Percent of rent" : "Flat rent cap"}
         />
+      )}
+      <span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 600 }}>on</span>
+      <select
+        value={rule.scope.kind}
+        onChange={(e) => setScopeKind(e.target.value as RentRuleScope["kind"])}
+        style={ruleSelect}
+        aria-label="Which properties the clause covers"
+      >
+        <option value="all">all property</option>
+        <option value="color" disabled={colors.length === 0}>color group</option>
+        <option value="site" disabled={sites.length === 0}>one site</option>
+      </select>
+      {rule.scope.kind === "color" && (
+        <select
+          value={rule.scope.color}
+          onChange={(e) => onChange({ ...rule, scope: { kind: "color", color: e.target.value } })}
+          style={ruleSelect}
+          aria-label="Color group"
+        >
+          {colors.map((c) => (
+            <option key={c} value={c}>{colorLabel(c)}</option>
+          ))}
+        </select>
+      )}
+      {rule.scope.kind === "site" && (
+        <select
+          value={rule.scope.space}
+          onChange={(e) => onChange({ ...rule, scope: { kind: "site", space: Number(e.target.value) } })}
+          style={ruleSelect}
+          aria-label="Property"
+        >
+          {sites.map((p) => (
+            <option key={p} value={p}>{BOARD[p].name}</option>
+          ))}
+        </select>
       )}
       <span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 600 }}>for</span>
       <input

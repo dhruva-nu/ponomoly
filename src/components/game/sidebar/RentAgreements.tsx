@@ -1,14 +1,16 @@
 "use client";
 
-import type { GameState } from "@game/types";
+import type { GameState, RentAgreement } from "@game/types";
+import { rentScopeSuffix } from "@game/board";
 import { COLOR } from "@/components/ui/theme";
 
 /** One-line summary of a live rent agreement, from the payer's perspective. */
-function agreementText(payer: string, payee: string, mode: string, value: number, turnsLeft: number): string {
-  const span = `${turnsLeft} ${turnsLeft === 1 ? "turn" : "turns"} left`;
-  if (mode === "waive") return `${payer} pays no rent to ${payee} · ${span}`;
-  if (mode === "percent") return `${payer} pays ${value}% rent to ${payee} · ${span}`;
-  return `${payer} pays at most $${value} rent to ${payee} · ${span}`;
+function agreementText(a: RentAgreement, payer: string, payee: string): string {
+  const span = `${a.turnsLeft} ${a.turnsLeft === 1 ? "turn" : "turns"} left`;
+  const where = rentScopeSuffix(a.scope);
+  if (a.mode === "waive") return `${payer} pays no rent to ${payee}${where} · ${span}`;
+  if (a.mode === "percent") return `${payer} pays ${a.value}% rent to ${payee}${where} · ${span}`;
+  return `${payer} pays at most $${a.value} rent to ${payee}${where} · ${span}`;
 }
 
 /** Compact panel listing the custom rent clauses currently in force. */
@@ -33,11 +35,9 @@ export default function RentAgreements({ state }: { state: GameState }) {
         {agreements.map((a, i) => (
           <div key={i} style={{ fontSize: 11, fontWeight: 600, color: COLOR.text, lineHeight: 1.35 }}>
             {agreementText(
+              a,
               state.players[a.payer]?.name ?? "A player",
               state.players[a.payee]?.name ?? "another player",
-              a.mode,
-              a.value,
-              a.turnsLeft,
             )}
           </div>
         ))}

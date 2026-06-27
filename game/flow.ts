@@ -277,7 +277,7 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
       state.buildings,
       state.mortgaged,
     );
-    const rent = discountedRent(state.rentAgreements, fullRent, turn, owner);
+    const rent = discountedRent(state.rentAgreements, fullRent, turn, owner, position);
     state.pendingRent = { pos: position, amount: rent, original: rent, to: owner, payer: turn, negotiating: false };
     if (rent < fullRent) {
       appendLog(state, `${player.name} owes $${rent} rent to ${state.players[owner].name} (was $${fullRent}, trade clause applied).`);
