@@ -69,7 +69,7 @@ NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787
 ```
 
 Open http://localhost:3000, create a game, and open the invite link in another
-browser/incognito window to play as a second player.
+browser window to play as a second player.
 
 ## Deploy
 
