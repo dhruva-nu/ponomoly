@@ -1,7 +1,7 @@
-# Property Tycoon
+# Ponomoly
 
 A real-time, turn-based multiplayer property game for **2–6 players**, imported from
-the *Property Tycoon* Claude Design comp. The UI runs on **Next.js (Vercel)**; the
+a Claude Design comp. The UI runs on **Next.js (Vercel)**; the
 authoritative game state runs on a **PartyKit** room (Cloudflare Durable Objects).
 
 ```
@@ -72,12 +72,12 @@ The two halves deploy independently:
 
 1. **PartyKit** (game logic) → Cloudflare:
    ```bash
-   bun run deploy:party      # prints your host, e.g. property-tycoon.<user>.partykit.dev
+   bun run deploy:party      # prints your host, e.g. ponomoly.<user>.partykit.dev
    ```
 2. **Next.js** (UI) → Vercel: import the repo, and set the env var in the Vercel
    project settings:
    ```
-   NEXT_PUBLIC_PARTYKIT_HOST=property-tycoon.<user>.partykit.dev
+   NEXT_PUBLIC_PARTYKIT_HOST=ponomoly.<user>.partykit.dev
    ```
 
 That single env var is the only link between the two deployments.

@@ -50,7 +50,7 @@ export default function Lobby({
           className="font-display"
           style={{ fontWeight: 800, fontSize: 30, lineHeight: 1.05, marginTop: 8, color: "#eef4ff", textShadow: "0 0 20px rgba(54,224,255,.45)" }}
         >
-          PROPERTY TYCOON
+          PONOMOLY
         </div>
         <button
           onClick={copyInvite}

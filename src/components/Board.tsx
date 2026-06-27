@@ -213,9 +213,7 @@ export default function Board({ state }: { state: GameState }) {
                 textShadow: "0 0 18px rgba(54,224,255,.4)",
               }}
             >
-              PROPERTY
-              <br />
-              TYCOON
+              PONOMOLY
             </div>
           </div>
           <div

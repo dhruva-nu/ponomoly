@@ -5,7 +5,7 @@ import type { ClientAction, GameState, ServerMessage } from "../game/types";
 
 const STORAGE_KEY = "game";
 
-export default class PropertyTycoonServer implements Party.Server {
+export default class PonomolyServer implements Party.Server {
   // Authoritative game state. One instance == one room.
   state: GameState = createInitialState();
 
@@ -94,4 +94,4 @@ export default class PropertyTycoonServer implements Party.Server {
   }
 }
 
-PropertyTycoonServer satisfies Party.Worker;
+PonomolyServer satisfies Party.Worker;
