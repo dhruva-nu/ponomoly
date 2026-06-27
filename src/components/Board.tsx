@@ -3,6 +3,7 @@
 import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import type { GameState } from "@game/types";
 import { BOARD, RENT_MULT, isOwnable, spaceColor } from "@game/board";
+import { rentFor } from "@game/logic";
 
 const HOVER_DELAY = 1000; // ms before the info tooltip appears
 
@@ -18,7 +19,7 @@ const SLOTS: CSSProperties[] = [
   { bottom: 4, right: 4 },
 ];
 
-export default function Board({ state }: { state: GameState }) {
+export default function Board({ state, youIndex = -1 }: { state: GameState; youIndex?: number }) {
   const cur = state.players[state.turn] || { token: "", name: "", color: "#36e0ff" };
 
   // Delayed hover tooltip showing a property's full rent breakdown.
@@ -172,6 +173,26 @@ export default function Board({ state }: { state: GameState }) {
                     boxShadow: `0 0 7px ${ownerColor}`,
                   }}
                 />
+              )}
+              {state.mortgaged[sp.idx] && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: 2,
+                    fontSize: 8,
+                    fontWeight: 800,
+                    letterSpacing: 0.5,
+                    color: "#ff8a3c",
+                    background: "rgba(8,6,4,.85)",
+                    border: "1px solid rgba(255,138,60,.6)",
+                    borderRadius: 4,
+                    padding: "0 3px",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  MTG
+                </div>
               )}
               <div
                 style={{
@@ -357,7 +378,7 @@ export default function Board({ state }: { state: GameState }) {
         );
       })}
 
-      {tip && <PropertyTip idx={tip.idx} x={tip.x} y={tip.y} state={state} />}
+      {tip && <PropertyTip idx={tip.idx} x={tip.x} y={tip.y} state={state} youIndex={youIndex} />}
     </div>
   );
 }
@@ -394,7 +415,19 @@ function rentRows(idx: number): { label: string; value: string; hot?: boolean }[
   return [];
 }
 
-function PropertyTip({ idx, x, y, state }: { idx: number; x: number; y: number; state: GameState }) {
+function PropertyTip({
+  idx,
+  x,
+  y,
+  state,
+  youIndex,
+}: {
+  idx: number;
+  x: number;
+  y: number;
+  state: GameState;
+  youIndex: number;
+}) {
   const sp = BOARD[idx];
   const col = spaceColor(idx);
   const rows = rentRows(idx);
@@ -402,6 +435,12 @@ function PropertyTip({ idx, x, y, state }: { idx: number; x: number; y: number; 
   const owner = state.owners[idx];
   const ownerName =
     owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].name : null;
+  const isOwned = owner !== undefined && owner !== null;
+  const youOwn = isOwned && owner === youIndex;
+  const isMortgaged = !!state.mortgaged[idx];
+  // Effective rent owed right now, given buildings / monopoly / mortgage / dice.
+  const diceTotal = state.dice.d1 + state.dice.d2;
+  const dueNow = isOwned ? rentFor(idx, state.owners, diceTotal, state.buildings, state.mortgaged) : 0;
   const level = state.buildings[idx] || 0;
   const buildLabel =
     sp.t === "prop"
@@ -455,6 +494,48 @@ function PropertyTip({ idx, x, y, state }: { idx: number; x: number; y: number; 
           <span style={{ color: "#36e0ff" }}>{typeLabel}</span>
           {sp.price ? <span style={{ color: "#9fb4d8" }}>Price ${sp.price}</span> : null}
         </div>
+
+        {isOwned && isMortgaged && (
+          <div
+            style={{
+              marginTop: 10,
+              borderRadius: 8,
+              padding: "8px 10px",
+              background: "rgba(255,138,60,.12)",
+              border: "1px solid rgba(255,138,60,.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, color: "#ff8a3c" }}>
+              Mortgaged
+            </span>
+            <span className="font-display" style={{ fontWeight: 700, fontSize: 15, color: "#ff8a3c" }}>No rent</span>
+          </div>
+        )}
+        {isOwned && !isMortgaged && (
+          <div
+            style={{
+              marginTop: 10,
+              borderRadius: 8,
+              padding: "8px 10px",
+              background: youOwn ? "rgba(43,217,160,.12)" : "rgba(255,128,144,.12)",
+              border: `1px solid ${youOwn ? "rgba(43,217,160,.4)" : "rgba(255,128,144,.4)"}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, color: youOwn ? "#2bd9a0" : "#ff8090" }}>
+              {youOwn ? "You collect" : "You'd pay"}
+            </span>
+            <span className="font-display" style={{ fontWeight: 700, fontSize: 19, color: youOwn ? "#2bd9a0" : "#ff8090" }}>
+              ${dueNow}
+              {sp.t === "util" && <span style={{ fontSize: 10, fontWeight: 600, color: "#9fb4d8" }}> · this roll</span>}
+            </span>
+          </div>
+        )}
 
         <div
           style={{

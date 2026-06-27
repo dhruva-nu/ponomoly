@@ -58,9 +58,26 @@ export interface GameState {
   owners: Record<number, number>;
   /** space index -> building level (1-4 = houses, 5 = hotel); absent/0 = none */
   buildings: Record<number, number>;
+  /** space index -> true when the property is mortgaged (collects no rent) */
+  mortgaged: Record<number, boolean>;
   dice: Dice;
   /** space index awaiting a buy/pass decision by the current player, else null */
   pendingBuy: number | null;
+  /** an outstanding trade offer awaiting the recipient's response, else null */
+  pendingTrade: {
+    /** proposer player index */
+    from: number;
+    /** recipient player index */
+    to: number;
+    /** property indices the proposer gives away */
+    offerProps: number[];
+    /** property indices the proposer wants from the recipient */
+    requestProps: number[];
+    /** cash the proposer adds to the offer */
+    offerCash: number;
+    /** cash the proposer wants from the recipient */
+    requestCash: number;
+  } | null;
   /** rent the current player owes and must confirm paying, else null */
   pendingRent: {
     pos: number;
@@ -97,6 +114,19 @@ export type ClientAction =
   | { type: "requestNegotiate" }
   | { type: "negotiateRent"; amount: number }
   | { type: "build"; pos: number }
+  | {
+      type: "proposeTrade";
+      to: number;
+      offerProps: number[];
+      requestProps: number[];
+      offerCash: number;
+      requestCash: number;
+    }
+  | { type: "respondTrade"; accept: boolean }
+  | { type: "cancelTrade" }
+  | { type: "sellHouse"; pos: number }
+  | { type: "mortgage"; pos: number }
+  | { type: "unmortgage"; pos: number }
   | { type: "endTurn" }
   | { type: "reset" }
   | { type: "admin"; password: string; cmd: AdminCmd };
@@ -111,6 +141,7 @@ export type AdminCmd =
   | { kind: "setTurn"; turn: number }
   | { kind: "setOwner"; pos: number; owner: number | null }
   | { kind: "setBuildings"; pos: number; level: number }
+  | { kind: "setMortgage"; pos: number; mortgaged: boolean }
   | { kind: "kick"; target: number }
   | { kind: "setPhase"; phase: Phase }
   | { kind: "replaceState"; state: GameState };

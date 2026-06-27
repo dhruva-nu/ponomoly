@@ -1,4 +1,17 @@
-import { BOARD, COLORS, TOKENS, RENT_MULT, isOwnable, colorGroup, houseCost, MIN_PLAYERS, MAX_PLAYERS } from "./board";
+import {
+  BOARD,
+  COLORS,
+  TOKENS,
+  RENT_MULT,
+  isOwnable,
+  colorGroup,
+  houseCost,
+  mortgageValue,
+  unmortgageCost,
+  sellValue,
+  MIN_PLAYERS,
+  MAX_PLAYERS,
+} from "./board";
 import type { AdminCmd, ClientAction, GameState, Player } from "./types";
 
 export const STARTING_CASH = 1500;
@@ -19,9 +32,11 @@ export function createInitialState(hostId: string | null = null): GameState {
     turn: 0,
     owners: {},
     buildings: {},
+    mortgaged: {},
     dice: { d1: 1, d2: 1, rolled: false },
     pendingBuy: null,
     pendingRent: null,
+    pendingTrade: null,
     lastRoll: null,
     log: [],
     winner: null,
@@ -48,9 +63,11 @@ export function rentFor(
   owners: Record<number, number>,
   diceTotal: number,
   buildings: Record<number, number> = {},
+  mortgaged: Record<number, boolean> = {},
 ): number {
   const sp = BOARD[pos];
   const owner = owners[pos];
+  if (mortgaged[pos]) return 0; // mortgaged properties collect no rent
   if (sp.t === "prop") {
     const base = sp.rent || 0;
     const level = buildings[pos] || 0;
@@ -114,7 +131,7 @@ function resolveLanding(state: GameState) {
       state.pendingBuy = pos;
       pushLog(state, `${p.name} landed on ${sp.name}.`);
     } else if (owner !== turn) {
-      const rent = rentFor(pos, state.owners, state.dice.d1 + state.dice.d2, state.buildings);
+      const rent = rentFor(pos, state.owners, state.dice.d1 + state.dice.d2, state.buildings, state.mortgaged);
       state.pendingRent = { pos, amount: rent, original: rent, to: owner, payer: turn, negotiating: false };
       pushLog(state, `${p.name} owes $${rent} rent to ${state.players[owner].name}.`);
     } else {
@@ -153,9 +170,21 @@ function settleDebt(state: GameState, idx: number) {
   for (const k of p.properties) {
     delete state.owners[k];
     delete state.buildings[k];
+    delete state.mortgaged[k];
   }
   p.properties = [];
+  if (state.pendingTrade && (state.pendingTrade.from === idx || state.pendingTrade.to === idx)) {
+    state.pendingTrade = null;
+  }
   pushLog(state, `${p.name} went bankrupt and is out.`);
+}
+
+/** Recompute a player's `properties` list from the authoritative `owners` map. */
+function rebuildProps(state: GameState, pi: number) {
+  const list: number[] = [];
+  for (const k in state.owners) if (state.owners[k] === pi) list.push(+k);
+  list.sort((a, b) => a - b);
+  if (state.players[pi]) state.players[pi].properties = list;
 }
 
 /**
@@ -171,6 +200,8 @@ export function applyAction(
   // Work on a structured clone so callers can treat this as pure.
   const state: GameState = structuredClone(prev);
   if (!state.buildings) state.buildings = {};
+  if (!state.mortgaged) state.mortgaged = {};
+  if (state.pendingTrade === undefined) state.pendingTrade = null;
   const idx = playerIndex(state, id);
 
   switch (action.type) {
@@ -226,8 +257,10 @@ export function applyAction(
       state.turn = 0;
       state.owners = {};
       state.buildings = {};
+      state.mortgaged = {};
       state.pendingBuy = null;
       state.pendingRent = null;
+      state.pendingTrade = null;
       state.dice = { d1: 1, d2: 1, rolled: false };
       state.log = [`${state.players[0].name} to act first.`];
       return { state };
@@ -358,6 +391,144 @@ export function applyAction(
       return { state };
     }
 
+    case "proposeTrade": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (idx < 0) return { state: prev, error: "Not in this game." };
+      if (state.pendingTrade) return { state: prev, error: "A trade is already in progress." };
+      const to = action.to;
+      if (!state.players[to] || to === idx) return { state: prev, error: "Pick another player to trade with." };
+      if (state.players[idx].bankrupt || state.players[to].bankrupt) {
+        return { state: prev, error: "Can't trade with a bankrupt player." };
+      }
+      const offerProps = [...new Set(action.offerProps)];
+      const requestProps = [...new Set(action.requestProps)];
+      for (const p of offerProps) {
+        if (state.owners[p] !== idx) return { state: prev, error: "You don't own everything you offered." };
+        if ((state.buildings[p] || 0) > 0) return { state: prev, error: `Sell buildings on ${BOARD[p].name} before trading it.` };
+      }
+      for (const p of requestProps) {
+        if (state.owners[p] !== to) return { state: prev, error: "They don't own everything you requested." };
+        if ((state.buildings[p] || 0) > 0) return { state: prev, error: `${BOARD[p].name} has buildings and can't be traded.` };
+      }
+      const offerCash = clampInt(action.offerCash, 0, state.players[idx].cash, 0);
+      const requestCash = clampInt(action.requestCash, 0, state.players[to].cash, 0);
+      if (offerProps.length + requestProps.length + offerCash + requestCash === 0) {
+        return { state: prev, error: "An empty trade isn't much of a trade." };
+      }
+      state.pendingTrade = { from: idx, to, offerProps, requestProps, offerCash, requestCash };
+      pushLog(state, `${state.players[idx].name} proposed a trade to ${state.players[to].name}.`);
+      return { state };
+    }
+
+    case "respondTrade": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      const t = state.pendingTrade;
+      if (!t) return { state: prev, error: "No trade to respond to." };
+      if (idx !== t.to) return { state: prev, error: "Only the recipient can respond to this trade." };
+      if (!action.accept) {
+        state.pendingTrade = null;
+        pushLog(state, `${state.players[t.to]?.name ?? "Player"} declined the trade.`);
+        return { state };
+      }
+      const from = state.players[t.from];
+      const to = state.players[t.to];
+      if (!from || !to || from.bankrupt || to.bankrupt) {
+        state.pendingTrade = null;
+        return { state, error: "Trade is no longer valid." };
+      }
+      for (const p of t.offerProps) {
+        if (state.owners[p] !== t.from) {
+          state.pendingTrade = null;
+          return { state, error: "An offered property changed hands." };
+        }
+      }
+      for (const p of t.requestProps) {
+        if (state.owners[p] !== t.to) {
+          state.pendingTrade = null;
+          return { state, error: "A requested property changed hands." };
+        }
+      }
+      if (from.cash < t.offerCash || to.cash < t.requestCash) {
+        state.pendingTrade = null;
+        return { state, error: "Someone can no longer cover the cash." };
+      }
+      for (const p of t.offerProps) state.owners[p] = t.to;
+      for (const p of t.requestProps) state.owners[p] = t.from;
+      rebuildProps(state, t.from);
+      rebuildProps(state, t.to);
+      from.cash += t.requestCash - t.offerCash;
+      to.cash += t.offerCash - t.requestCash;
+      state.pendingTrade = null;
+      pushLog(state, `${from.name} and ${to.name} completed a trade.`);
+      return { state };
+    }
+
+    case "cancelTrade": {
+      const t = state.pendingTrade;
+      if (!t) return { state };
+      if (idx !== t.from && idx !== t.to) return { state: prev, error: "Not your trade to cancel." };
+      state.pendingTrade = null;
+      pushLog(state, `${state.players[idx]?.name ?? "Player"} cancelled the trade.`);
+      return { state };
+    }
+
+    case "sellHouse": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (idx < 0) return { state: prev, error: "Not in this game." };
+      const pos = action.pos;
+      const sp = BOARD[pos];
+      if (!sp || sp.t !== "prop") return { state: prev, error: "Nothing to sell there." };
+      if (state.owners[pos] !== idx) return { state: prev, error: "You don't own that property." };
+      const level = state.buildings[pos] || 0;
+      if (level <= 0) return { state: prev, error: "No buildings to sell there." };
+      const refund = sellValue(pos);
+      const p = state.players[idx];
+      p.cash += refund;
+      if (level - 1 === 0) delete state.buildings[pos];
+      else state.buildings[pos] = level - 1;
+      const what = level === 5 ? "the hotel" : "a house";
+      pushLog(state, `${p.name} sold ${what} on ${sp.name} for $${refund}.`);
+      return { state };
+    }
+
+    case "mortgage": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (idx < 0) return { state: prev, error: "Not in this game." };
+      const pos = action.pos;
+      const sp = BOARD[pos];
+      if (!sp || !isOwnable(sp.t)) return { state: prev, error: "That can't be mortgaged." };
+      if (state.owners[pos] !== idx) return { state: prev, error: "You don't own that property." };
+      if (state.mortgaged[pos]) return { state: prev, error: "Already mortgaged." };
+      if ((state.buildings[pos] || 0) > 0) return { state: prev, error: "Sell its buildings before mortgaging." };
+      // Can't mortgage a property whose color group still has buildings.
+      if (sp.t === "prop" && colorGroup(pos).some((g) => (state.buildings[g] || 0) > 0)) {
+        return { state: prev, error: "Sell all houses in this color set before mortgaging." };
+      }
+      const value = mortgageValue(pos);
+      const p = state.players[idx];
+      state.mortgaged[pos] = true;
+      p.cash += value;
+      pushLog(state, `${p.name} mortgaged ${sp.name} for $${value}.`);
+      return { state };
+    }
+
+    case "unmortgage": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (idx < 0) return { state: prev, error: "Not in this game." };
+      const pos = action.pos;
+      const sp = BOARD[pos];
+      if (!sp || !isOwnable(sp.t)) return { state: prev, error: "Nothing to lift there." };
+      if (state.owners[pos] !== idx) return { state: prev, error: "You don't own that property." };
+      if (!state.mortgaged[pos]) return { state: prev, error: "That isn't mortgaged." };
+      const cost = unmortgageCost(pos);
+      const p = state.players[idx];
+      if (p.cash < cost) return { state: prev, error: "Not enough cash to lift the mortgage." };
+      p.cash -= cost;
+      delete state.mortgaged[pos];
+      pushLog(state, `${p.name} lifted the mortgage on ${sp.name} for $${cost}.`);
+      return { state };
+    }
+
     case "endTurn": {
       if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
       if (idx !== state.turn) return { state: prev, error: "Not your turn." };
@@ -437,8 +608,9 @@ function applyAdmin(state: GameState, cmd: AdminCmd): { state: GameState; error?
     }
     case "setOwner": {
       const pos = clampInt(cmd.pos, 0, 39, 0);
-      // Ownership change wipes any buildings on the space.
+      // Ownership change wipes any buildings/mortgage on the space.
       delete state.buildings[pos];
+      delete state.mortgaged[pos];
       // Remove from any current owner's list first.
       const prevOwner = state.owners[pos];
       if (prevOwner !== undefined && state.players[prevOwner]) {
@@ -476,13 +648,28 @@ function applyAdmin(state: GameState, cmd: AdminCmd): { state: GameState; error?
       }
       return { state };
     }
+    case "setMortgage": {
+      const pos = clampInt(cmd.pos, 0, 39, 0);
+      if (!isOwnable(BOARD[pos].t)) return { state, error: "Not a mortgageable space." };
+      if (cmd.mortgaged) {
+        state.mortgaged[pos] = true;
+        pushLog(state, `[admin] Mortgaged ${BOARD[pos].name}.`);
+      } else {
+        delete state.mortgaged[pos];
+        pushLog(state, `[admin] Lifted mortgage on ${BOARD[pos].name}.`);
+      }
+      return { state };
+    }
     case "kick": {
       if (!state.players[cmd.target]) return { state, error: "No such player." };
       const name = state.players[cmd.target].name;
+      // Player indices shift on removal, so any in-flight trade is now stale.
+      state.pendingTrade = null;
       for (const k in state.owners) {
         if (state.owners[k] === cmd.target) {
           delete state.owners[+k];
           delete state.buildings[+k];
+          delete state.mortgaged[+k];
         }
       }
       state.players.splice(cmd.target, 1);

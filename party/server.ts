@@ -17,6 +17,8 @@ export default class PonomolyServer implements Party.Server {
     if (saved) {
       // Backfill fields added after this room was last persisted.
       if (!saved.buildings) saved.buildings = {};
+      if (!saved.mortgaged) saved.mortgaged = {};
+      if (saved.pendingTrade === undefined) saved.pendingTrade = null;
       this.state = saved;
     }
   }

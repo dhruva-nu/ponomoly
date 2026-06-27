@@ -124,3 +124,18 @@ export function colorGroup(idx: number): number[] {
   if (sp.t !== "prop") return [];
   return BOARD.filter((s) => s.t === "prop" && s.c === sp.c).map((s) => s.idx);
 }
+
+/** Cash raised by mortgaging a property (half its price). */
+export function mortgageValue(idx: number): number {
+  return Math.floor((BOARD[idx].price || 0) / 2);
+}
+
+/** Cost to lift a mortgage: the mortgage value plus 10% interest. */
+export function unmortgageCost(idx: number): number {
+  return Math.ceil(mortgageValue(idx) * 1.1);
+}
+
+/** Cash refunded for selling one house/hotel back to the bank (half build cost). */
+export function sellValue(idx: number): number {
+  return Math.floor(houseCost(idx) / 2);
+}
