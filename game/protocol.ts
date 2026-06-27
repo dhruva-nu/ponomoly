@@ -9,6 +9,10 @@ export type ClientAction =
   | { type: "roll" }
   | { type: "buy" }
   | { type: "pass" }
+  | { type: "bid"; amount: number }
+  | { type: "auctionPass" }
+  | { type: "tickAuction" }
+  | { type: "surrender" }
   | { type: "payRent" }
   | { type: "requestNegotiate" }
   | { type: "negotiateRent"; amount: number }

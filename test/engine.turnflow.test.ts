@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AUCTION_DURATION_MS } from "@game/constants";
 import { GameDriver, startedGame } from "./support/driver";
 
 describe("buy", () => {
@@ -40,12 +41,13 @@ describe("pass", () => {
     expect(game.apply("Ada", { type: "pass" }).error).toBeUndefined();
   });
 
-  it("declines a pending purchase", () => {
+  it("declines a pending purchase and sends it to auction", () => {
     const game = startedGame(["Ada", "Bo"]);
     game.rigRoll("Ada", 3, 3);
     game.apply("Ada", { type: "pass" });
     expect(game.state.pendingBuy).toBeNull();
-    expect(game.state.log.at(-1)).toContain("declined");
+    expect(game.state.pendingAuction?.pos).toBe(6);
+    expect(game.state.log.some((line) => line.includes("declined"))).toBe(true);
   });
 });
 
@@ -59,7 +61,9 @@ describe("endTurn", () => {
 
     game.rigRoll("Ada", 3, 3); // pending purchase
     expect(game.apply("Ada", { type: "endTurn" }).error).toBe("Resolve the property first.");
-    game.apply("Ada", { type: "pass" });
+    game.apply("Ada", { type: "pass" }); // declining opens an auction
+    expect(game.apply("Ada", { type: "endTurn" }).error).toBe("Resolve the auction first.");
+    game.advance(AUCTION_DURATION_MS).apply("Ada", { type: "tickAuction" }); // let it lapse
     game.apply("Ada", { type: "endTurn" });
     expect(game.state.turn).toBe(1);
   });

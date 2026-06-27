@@ -3,6 +3,7 @@
 import type { ClientAction, GameState } from "@game/types";
 import type { GameView } from "./gameView";
 import BuyModal from "./modals/BuyModal";
+import AuctionModal from "./modals/AuctionModal";
 import RentModal from "./modals/RentModal";
 import RentPill from "./modals/RentPill";
 import OwnerNegotiateModal from "./modals/OwnerNegotiateModal";
@@ -51,10 +52,15 @@ export default function GameModals({
   const showBuy = view.showBuy && !holdModals;
   const showRent = view.showRent && !holdModals;
   const showNegotiate = view.showNegotiate && !holdModals;
+  const showAuction = view.auction !== null && !holdModals;
 
   return (
     <>
       {showBuy && pendingBuy !== null && <BuyModal spaceIndex={pendingBuy} cash={cash} send={send} />}
+
+      {showAuction && view.auction !== null && (
+        <AuctionModal auction={view.auction} state={state} myIndex={view.myIndex} send={send} />
+      )}
 
       {showRent && pendingRent !== null && !rentMinimized && (
         <RentModal
