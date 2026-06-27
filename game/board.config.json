@@ -1,45 +1,529 @@
 {
   "startingCash": 1500,
   "spaces": [
-    { "t": "go", "name": "GO", "icon": "→" },
-    { "t": "prop", "name": "Cocoa Court", "c": "#955436", "price": 60, "rent": 6 },
-    { "t": "chest", "name": "Vault", "icon": "?" },
-    { "t": "prop", "name": "Maple Mews", "c": "#955436", "price": 60, "rent": 6 },
-    { "t": "tax", "name": "Income Tax", "icon": "$", "price": 200 },
-    { "t": "rail", "name": "North Station", "icon": "◆", "price": 200, "rent": 25 },
-    { "t": "prop", "name": "Azure Ave", "c": "#aae0fa", "price": 100, "rent": 6 },
-    { "t": "chance", "name": "Chance", "icon": "?" },
-    { "t": "prop", "name": "Sky Street", "c": "#aae0fa", "price": 100, "rent": 6 },
-    { "t": "prop", "name": "Cloud Close", "c": "#aae0fa", "price": 120, "rent": 8 },
-    { "t": "jail", "name": "JAIL", "icon": "" },
-    { "t": "prop", "name": "Rose Road", "c": "#d93a96", "price": 140, "rent": 10 },
-    { "t": "util", "name": "Power Co", "icon": "◇", "price": 150, "rent": 0 },
-    { "t": "prop", "name": "Petal Place", "c": "#d93a96", "price": 140, "rent": 10 },
-    { "t": "prop", "name": "Bloom Blvd", "c": "#d93a96", "price": 160, "rent": 12 },
-    { "t": "rail", "name": "East Station", "icon": "◆", "price": 200, "rent": 25 },
-    { "t": "prop", "name": "Tangerine Trail", "c": "#f7941d", "price": 180, "rent": 14 },
-    { "t": "chest", "name": "Vault", "icon": "?" },
-    { "t": "prop", "name": "Amber Alley", "c": "#f7941d", "price": 180, "rent": 14 },
-    { "t": "prop", "name": "Sunset Strip", "c": "#f7941d", "price": 200, "rent": 16 },
-    { "t": "parking", "name": "FREE PARKING", "icon": "" },
-    { "t": "prop", "name": "Crimson Cres", "c": "#ed1b24", "price": 220, "rent": 18 },
-    { "t": "chance", "name": "Chance", "icon": "?" },
-    { "t": "prop", "name": "Ruby Row", "c": "#ed1b24", "price": 220, "rent": 18 },
-    { "t": "prop", "name": "Scarlet Sq", "c": "#ed1b24", "price": 240, "rent": 20 },
-    { "t": "rail", "name": "South Station", "icon": "◆", "price": 200, "rent": 25 },
-    { "t": "prop", "name": "Lemon Lane", "c": "#fef200", "price": 260, "rent": 22 },
-    { "t": "prop", "name": "Honey Heights", "c": "#fef200", "price": 260, "rent": 22 },
-    { "t": "util", "name": "Water Works", "icon": "◇", "price": 150, "rent": 0 },
-    { "t": "prop", "name": "Goldenrod Gdns", "c": "#fef200", "price": 280, "rent": 24 },
-    { "t": "gotojail", "name": "GO TO JAIL", "icon": "" },
-    { "t": "prop", "name": "Emerald Estate", "c": "#1fb25a", "price": 300, "rent": 26 },
-    { "t": "prop", "name": "Fern Field", "c": "#1fb25a", "price": 300, "rent": 26 },
-    { "t": "chest", "name": "Vault", "icon": "?" },
-    { "t": "prop", "name": "Jade Junction", "c": "#1fb25a", "price": 320, "rent": 28 },
-    { "t": "rail", "name": "West Station", "icon": "◆", "price": 200, "rent": 25 },
-    { "t": "chance", "name": "Chance", "icon": "?" },
-    { "t": "prop", "name": "Sapphire Sq", "c": "#0072bb", "price": 350, "rent": 35 },
-    { "t": "tax", "name": "Luxury Tax", "icon": "$", "price": 100 },
-    { "t": "prop", "name": "Diamond Drive", "c": "#0072bb", "price": 400, "rent": 50 }
+    {
+      "t": "go",
+      "name": "GO",
+      "icon": "→"
+    },
+    {
+      "t": "prop",
+      "name": "Mediterranean Avenue",
+      "c": "#955436",
+      "price": 60,
+      "mortgage": 30,
+      "unmortgage": 33,
+      "housePrice": 50,
+      "rent": {
+        "base": 2,
+        "set": 5,
+        "house1": 10,
+        "house2": 30,
+        "house3": 90,
+        "house4": 160,
+        "hotel": 250
+      }
+    },
+    {
+      "t": "chest",
+      "name": "Community Chest",
+      "icon": "?"
+    },
+    {
+      "t": "prop",
+      "name": "Baltic Avenue",
+      "c": "#955436",
+      "price": 60,
+      "mortgage": 30,
+      "unmortgage": 33,
+      "housePrice": 50,
+      "rent": {
+        "base": 4,
+        "set": 10,
+        "house1": 20,
+        "house2": 60,
+        "house3": 180,
+        "house4": 320,
+        "hotel": 450
+      }
+    },
+    {
+      "t": "tax",
+      "name": "Income Tax",
+      "icon": "$",
+      "price": 200
+    },
+    {
+      "t": "rail",
+      "name": "Reading Railroad",
+      "price": 200,
+      "mortgage": 100,
+      "unmortgage": 110,
+      "rent": {
+        "1": 25,
+        "2": 50,
+        "3": 100,
+        "4": 200
+      }
+    },
+    {
+      "t": "prop",
+      "name": "Oriental Avenue",
+      "c": "#aae0fa",
+      "price": 100,
+      "mortgage": 50,
+      "unmortgage": 55,
+      "housePrice": 50,
+      "rent": {
+        "base": 6,
+        "set": 15,
+        "house1": 30,
+        "house2": 90,
+        "house3": 270,
+        "house4": 400,
+        "hotel": 550
+      }
+    },
+    {
+      "t": "chance",
+      "name": "Chance",
+      "icon": "?"
+    },
+    {
+      "t": "prop",
+      "name": "Vermont Avenue",
+      "c": "#aae0fa",
+      "price": 100,
+      "mortgage": 50,
+      "unmortgage": 55,
+      "housePrice": 50,
+      "rent": {
+        "base": 6,
+        "set": 15,
+        "house1": 30,
+        "house2": 90,
+        "house3": 270,
+        "house4": 400,
+        "hotel": 550
+      }
+    },
+    {
+      "t": "prop",
+      "name": "Connecticut Avenue",
+      "c": "#aae0fa",
+      "price": 120,
+      "mortgage": 60,
+      "unmortgage": 66,
+      "housePrice": 50,
+      "rent": {
+        "base": 8,
+        "set": 20,
+        "house1": 40,
+        "house2": 100,
+        "house3": 300,
+        "house4": 450,
+        "hotel": 600
+      }
+    },
+    {
+      "t": "jail",
+      "name": "JAIL",
+      "icon": ""
+    },
+    {
+      "t": "prop",
+      "name": "St. Charles Place",
+      "c": "#d93a96",
+      "price": 140,
+      "mortgage": 70,
+      "unmortgage": 77,
+      "housePrice": 100,
+      "rent": {
+        "base": 10,
+        "set": 25,
+        "house1": 50,
+        "house2": 150,
+        "house3": 450,
+        "house4": 625,
+        "hotel": 750
+      }
+    },
+    {
+      "t": "util",
+      "name": "Electric Company",
+      "price": 150,
+      "mortgage": 75,
+      "unmortgage": 82.5
+    },
+    {
+      "t": "prop",
+      "name": "States Avenue",
+      "c": "#d93a96",
+      "price": 140,
+      "mortgage": 70,
+      "unmortgage": 77,
+      "housePrice": 100,
+      "rent": {
+        "base": 10,
+        "set": 25,
+        "house1": 50,
+        "house2": 150,
+        "house3": 450,
+        "house4": 625,
+        "hotel": 750
+      }
+    },
+    {
+      "t": "prop",
+      "name": "Virginia Avenue",
+      "c": "#d93a96",
+      "price": 160,
+      "mortgage": 80,
+      "unmortgage": 88,
+      "housePrice": 100,
+      "rent": {
+        "base": 12,
+        "set": 30,
+        "house1": 60,
+        "house2": 180,
+        "house3": 500,
+        "house4": 700,
+        "hotel": 900
+      }
+    },
+    {
+      "t": "rail",
+      "name": "Pennsylvania Railroad",
+      "price": 200,
+      "mortgage": 100,
+      "unmortgage": 110,
+      "rent": {
+        "1": 25,
+        "2": 50,
+        "3": 100,
+        "4": 200
+      }
+    },
+    {
+      "t": "prop",
+      "name": "St. James Place",
+      "c": "#f7941d",
+      "price": 180,
+      "mortgage": 90,
+      "unmortgage": 99,
+      "housePrice": 100,
+      "rent": {
+        "base": 14,
+        "set": 35,
+        "house1": 70,
+        "house2": 200,
+        "house3": 550,
+        "house4": 750,
+        "hotel": 950
+      }
+    },
+    {
+      "t": "chest",
+      "name": "Community Chest",
+      "icon": "?"
+    },
+    {
+      "t": "prop",
+      "name": "Tennessee Avenue",
+      "c": "#f7941d",
+      "price": 180,
+      "mortgage": 90,
+      "unmortgage": 99,
+      "housePrice": 100,
+      "rent": {
+        "base": 14,
+        "set": 35,
+        "house1": 70,
+        "house2": 200,
+        "house3": 550,
+        "house4": 750,
+        "hotel": 950
+      }
+    },
+    {
+      "t": "prop",
+      "name": "New York Avenue",
+      "c": "#f7941d",
+      "price": 200,
+      "mortgage": 100,
+      "unmortgage": 110,
+      "housePrice": 100,
+      "rent": {
+        "base": 16,
+        "set": 40,
+        "house1": 80,
+        "house2": 220,
+        "house3": 600,
+        "house4": 800,
+        "hotel": 1000
+      }
+    },
+    {
+      "t": "parking",
+      "name": "FREE PARKING",
+      "icon": ""
+    },
+    {
+      "t": "prop",
+      "name": "Kentucky Avenue",
+      "c": "#ed1b24",
+      "price": 220,
+      "mortgage": 110,
+      "unmortgage": 121,
+      "housePrice": 150,
+      "rent": {
+        "base": 18,
+        "set": 45,
+        "house1": 90,
+        "house2": 250,
+        "house3": 700,
+        "house4": 875,
+        "hotel": 1050
+      }
+    },
+    {
+      "t": "chance",
+      "name": "Chance",
+      "icon": "?"
+    },
+    {
+      "t": "prop",
+      "name": "Indiana Avenue",
+      "c": "#ed1b24",
+      "price": 220,
+      "mortgage": 110,
+      "unmortgage": 121,
+      "housePrice": 150,
+      "rent": {
+        "base": 18,
+        "set": 45,
+        "house1": 90,
+        "house2": 250,
+        "house3": 700,
+        "house4": 875,
+        "hotel": 1050
+      }
+    },
+    {
+      "t": "prop",
+      "name": "Illinois Avenue",
+      "c": "#ed1b24",
+      "price": 240,
+      "mortgage": 120,
+      "unmortgage": 132,
+      "housePrice": 150,
+      "rent": {
+        "base": 20,
+        "set": 50,
+        "house1": 100,
+        "house2": 300,
+        "house3": 750,
+        "house4": 925,
+        "hotel": 1100
+      }
+    },
+    {
+      "t": "rail",
+      "name": "B. & O. Railroad",
+      "price": 200,
+      "mortgage": 100,
+      "unmortgage": 110,
+      "rent": {
+        "1": 25,
+        "2": 50,
+        "3": 100,
+        "4": 200
+      }
+    },
+    {
+      "t": "prop",
+      "name": "Atlantic Avenue",
+      "c": "#fef200",
+      "price": 260,
+      "mortgage": 130,
+      "unmortgage": 143,
+      "housePrice": 150,
+      "rent": {
+        "base": 22,
+        "set": 55,
+        "house1": 110,
+        "house2": 330,
+        "house3": 800,
+        "house4": 975,
+        "hotel": 1150
+      }
+    },
+    {
+      "t": "prop",
+      "name": "Ventnor Avenue",
+      "c": "#fef200",
+      "price": 260,
+      "mortgage": 130,
+      "unmortgage": 143,
+      "housePrice": 150,
+      "rent": {
+        "base": 22,
+        "set": 55,
+        "house1": 110,
+        "house2": 330,
+        "house3": 800,
+        "house4": 975,
+        "hotel": 1150
+      }
+    },
+    {
+      "t": "util",
+      "name": "Water Works",
+      "price": 150,
+      "mortgage": 75,
+      "unmortgage": 82.5
+    },
+    {
+      "t": "prop",
+      "name": "Marvin Gardens",
+      "c": "#fef200",
+      "price": 280,
+      "mortgage": 140,
+      "unmortgage": 154,
+      "housePrice": 150,
+      "rent": {
+        "base": 24,
+        "set": 60,
+        "house1": 120,
+        "house2": 360,
+        "house3": 850,
+        "house4": 1025,
+        "hotel": 1200
+      }
+    },
+    {
+      "t": "gotojail",
+      "name": "GO TO JAIL",
+      "icon": ""
+    },
+    {
+      "t": "prop",
+      "name": "Pacific Avenue",
+      "c": "#1fb25a",
+      "price": 300,
+      "mortgage": 150,
+      "unmortgage": 165,
+      "housePrice": 200,
+      "rent": {
+        "base": 26,
+        "set": 65,
+        "house1": 130,
+        "house2": 390,
+        "house3": 900,
+        "house4": 1100,
+        "hotel": 1275
+      }
+    },
+    {
+      "t": "prop",
+      "name": "North Carolina Avenue",
+      "c": "#1fb25a",
+      "price": 300,
+      "mortgage": 150,
+      "unmortgage": 165,
+      "housePrice": 200,
+      "rent": {
+        "base": 26,
+        "set": 65,
+        "house1": 130,
+        "house2": 390,
+        "house3": 900,
+        "house4": 1100,
+        "hotel": 1275
+      }
+    },
+    {
+      "t": "chest",
+      "name": "Community Chest",
+      "icon": "?"
+    },
+    {
+      "t": "prop",
+      "name": "Pennsylvania Avenue",
+      "c": "#1fb25a",
+      "price": 320,
+      "mortgage": 160,
+      "unmortgage": 176,
+      "housePrice": 200,
+      "rent": {
+        "base": 28,
+        "set": 70,
+        "house1": 150,
+        "house2": 450,
+        "house3": 1000,
+        "house4": 1200,
+        "hotel": 1400
+      }
+    },
+    {
+      "t": "rail",
+      "name": "Short Line Railroad",
+      "price": 200,
+      "mortgage": 100,
+      "unmortgage": 110,
+      "rent": {
+        "1": 25,
+        "2": 50,
+        "3": 100,
+        "4": 200
+      }
+    },
+    {
+      "t": "chance",
+      "name": "Chance",
+      "icon": "?"
+    },
+    {
+      "t": "prop",
+      "name": "Park Place",
+      "c": "#0072bb",
+      "price": 350,
+      "mortgage": 175,
+      "unmortgage": 192.5,
+      "housePrice": 200,
+      "rent": {
+        "base": 35,
+        "set": 87.5,
+        "house1": 175,
+        "house2": 500,
+        "house3": 1100,
+        "house4": 1300,
+        "hotel": 1500
+      }
+    },
+    {
+      "t": "tax",
+      "name": "Luxury Tax",
+      "icon": "$",
+      "price": 100
+    },
+    {
+      "t": "prop",
+      "name": "Boardwalk",
+      "c": "#0072bb",
+      "price": 400,
+      "mortgage": 200,
+      "unmortgage": 220,
+      "housePrice": 200,
+      "rent": {
+        "base": 50,
+        "set": 125,
+        "house1": 200,
+        "house2": 600,
+        "house3": 1400,
+        "house4": 1700,
+        "hotel": 2000
+      }
+    }
   ]
 }
