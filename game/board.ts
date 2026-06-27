@@ -15,15 +15,16 @@ export const MIN_PLAYERS = 2;
 /** Rent multiplier by building level (index 0 = unimproved, 5 = hotel). */
 export const RENT_MULT = [1, 2, 3, 4, 5, 8];
 
+// Authentic Monopoly property-group colors.
 const GROUP_COLOR = {
-  brown: "#6d7cff",
-  lblue: "#36c9ff",
-  pink: "#d65cff",
-  orange: "#ff8a3c",
-  red: "#ff5a6e",
-  yellow: "#ffd23c",
-  green: "#2bd9a0",
-  blue: "#4d7cff",
+  brown: "#955436",
+  lblue: "#aae0fa",
+  pink: "#d93a96",
+  orange: "#f7941d",
+  red: "#ed1b24",
+  yellow: "#fef200",
+  green: "#1fb25a",
+  blue: "#0072bb",
 };
 
 /** Map a board index (0..39) to its [row, col] on the 11x11 grid. */

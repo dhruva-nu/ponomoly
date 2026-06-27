@@ -1,5 +1,7 @@
 "use client";
 
+import { COLOR, GRADIENT } from "@/components/ui/theme";
+
 /** Collapsed rent reminder shown after the tenant minimizes the rent modal. */
 export default function RentPill({ amount, onOpen }: { amount: number; onOpen: () => void }) {
   return (
@@ -13,8 +15,8 @@ export default function RentPill({ amount, onOpen }: { amount: number; onOpen: (
         display: "flex",
         alignItems: "center",
         gap: 10,
-        background: "linear-gradient(135deg,#ff6a7e,#ff9a5a)",
-        color: "#1a0408",
+        background: GRADIENT.danger,
+        color: COLOR.abyss,
         border: "none",
         borderRadius: 999,
         padding: "12px 18px",
@@ -22,7 +24,7 @@ export default function RentPill({ amount, onOpen }: { amount: number; onOpen: (
         fontSize: 13,
         letterSpacing: 0.5,
         cursor: "pointer",
-        boxShadow: "0 0 22px rgba(255,90,110,.5), 0 10px 30px rgba(0,0,0,.5)",
+        boxShadow: "0 12px 30px rgba(34,24,8,.3)",
         animation: "popIn .2s ease",
       }}
     >

@@ -62,9 +62,9 @@ export default function OwnerNegotiateModal({
           {presets.map((preset) => (
             <button key={preset.label} onClick={() => setDraft(preset.value)} style={{
               flex: 1,
-              border: "1px solid rgba(120,180,255,.25)",
-              background: chosen === preset.value ? "rgba(54,224,255,.18)" : "transparent",
-              color: "#cfe0ff",
+              border: chosen === preset.value ? `1px solid ${COLOR.cyan}55` : "1px solid rgba(0,0,0,.15)",
+              background: chosen === preset.value ? `${COLOR.cyan}1a` : "transparent",
+              color: chosen === preset.value ? COLOR.cyan : COLOR.text,
               fontWeight: 600,
               fontSize: 11,
               letterSpacing: 0.5,

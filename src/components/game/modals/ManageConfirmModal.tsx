@@ -52,7 +52,7 @@ export default function ManageConfirmModal({
         <div style={eyebrowStyle(config.accent)}>{config.title}</div>
         <div style={{ fontSize: 14, color: COLOR.text, fontWeight: 500, marginTop: 8, lineHeight: 1.4 }}>{config.body}</div>
         <StatFrame>
-          <span style={{ color: COLOR.slate, fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>
+          <span style={{ color: COLOR.muted, fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>
             {config.rowLabel}
           </span>
           <span className="font-display" style={{ fontWeight: 700, fontSize: 20, color: config.accent }}>
