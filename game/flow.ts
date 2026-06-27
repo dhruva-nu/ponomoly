@@ -3,7 +3,7 @@ import { BOARD, isOwnable } from "./board";
 import { AUCTION_DURATION_MS, JAIL_INDEX } from "./constants";
 import { appendLog, solventPlayerIndices } from "./helpers";
 import { rentFor } from "./rent";
-import { drawCardOutcome, type RandomSource } from "./rng";
+import { drawCard, type RandomSource } from "./rng";
 
 /**
  * Tear a player out of play: mark them bankrupt, strip improvements/mortgages
@@ -170,15 +170,20 @@ export function resolveLanding(state: GameState, random: RandomSource): void {
   } else if (space.t === "gotojail") {
     sendToJail(state, turn);
   } else if (space.t === "chance" || space.t === "chest") {
-    const delta = drawCardOutcome(random);
-    player.cash += delta;
-    appendLog(
-      state,
-      delta >= 0
-        ? `${player.name} drew a card: +$${delta}.`
-        : `${player.name} drew a card: -$${-delta}.`,
-    );
-    if (delta < 0) settleDebt(state, turn);
+    const card = drawCard(random);
+    if (card.kind === "jailFree") {
+      player.jailCards += 1;
+      appendLog(state, `${player.name} drew a Get Out of Jail Free card.`);
+    } else {
+      player.cash += card.delta;
+      appendLog(
+        state,
+        card.delta >= 0
+          ? `${player.name} drew a card: +$${card.delta}.`
+          : `${player.name} drew a card: -$${-card.delta}.`,
+      );
+      if (card.delta < 0) settleDebt(state, turn);
+    }
   } else if (space.t === "go") {
     appendLog(state, `${player.name} landed on GO. Collected $200.`);
   } else if (space.t === "parking") {

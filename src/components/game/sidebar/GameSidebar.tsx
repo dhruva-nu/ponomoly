@@ -55,6 +55,47 @@ export default function GameSidebar({
 
       <DiceConsole dice={state.dice} rolling={rolling} canRoll={view.canRoll} rollLabel={rollLabel} onRoll={onRoll} />
 
+      {view.inJail && (
+        <div style={{
+          background: "rgba(255,138,60,.1)", border: "1px solid rgba(255,138,60,.4)", borderRadius: 12,
+          padding: "11px 12px", display: "flex", flexDirection: "column", gap: 9,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#ff8a3c", textAlign: "center" }}>
+            🔒 In Jail — roll doubles to break out
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => send({ type: "payJailFine" })}
+              disabled={!view.canPayJailFine}
+              style={{
+                flex: 1,
+                border: view.canPayJailFine ? "1px solid rgba(255,138,60,.6)" : "1px solid rgba(120,180,255,.2)",
+                background: view.canPayJailFine ? "rgba(255,138,60,.16)" : "rgba(20,30,54,.6)",
+                color: view.canPayJailFine ? "#ffb27a" : COLOR.dim,
+                fontWeight: 700, fontSize: 12, padding: "9px 8px", borderRadius: 9,
+                cursor: view.canPayJailFine ? "pointer" : "default",
+              }}
+            >
+              Pay ${view.jailFine}
+            </button>
+            <button
+              onClick={() => send({ type: "useJailCard" })}
+              disabled={!view.canUseJailCard}
+              style={{
+                flex: 1,
+                border: view.canUseJailCard ? "1px solid rgba(43,217,160,.6)" : "1px solid rgba(120,180,255,.2)",
+                background: view.canUseJailCard ? "rgba(43,217,160,.16)" : "rgba(20,30,54,.6)",
+                color: view.canUseJailCard ? COLOR.green : COLOR.dim,
+                fontWeight: 700, fontSize: 12, padding: "9px 8px", borderRadius: 9,
+                cursor: view.canUseJailCard ? "pointer" : "default",
+              }}
+            >
+              🎟 Use Card
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ textAlign: "center", fontSize: 14, fontWeight: 600, color: view.isMyTurn ? COLOR.green : "#8295b8", letterSpacing: 0.4, padding: "2px 0" }}>
         {turnLabel}
       </div>

@@ -84,12 +84,19 @@ describe("landing resolution", () => {
 
   it("applies positive and negative card draws", () => {
     const positive = game();
-    positive.rigRoll("Ada", 3, 4, () => 0.99); // space 7 = Chance, best outcome +200
+    positive.rigRoll("Ada", 3, 4, () => 0.8); // space 7 = Chance, top cash outcome +200
     expect(positive.player(0).cash).toBe(1700);
 
     const negative = game();
     negative.rigRoll("Ada", 3, 4, () => 0); // worst outcome -100
     expect(negative.player(0).cash).toBe(1400);
+  });
+
+  it("grants a Get Out of Jail Free card on the right draw", () => {
+    const g = game();
+    g.rigRoll("Ada", 3, 4, () => 0.99); // space 7 = Chance, top slot is the jail card
+    expect(g.player(0).jailCards).toBe(1);
+    expect(g.player(0).cash).toBe(1500); // a card, not cash
   });
 
   it("bankrupts a player a negative card pushes below zero", () => {

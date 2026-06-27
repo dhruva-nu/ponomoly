@@ -27,6 +27,7 @@ export function handleJoin(ctx: ActionContext, action: Of<"join">): HandlerError
     bankrupt: false,
     jailed: false,
     jailTurns: 0,
+    jailCards: 0,
   });
   if (state.hostId === null) state.hostId = ctx.id;
   appendLog(state, `${name} joined the lobby.`);
@@ -83,6 +84,7 @@ export function handleReset(ctx: ActionContext): HandlerError {
     bankrupt: false,
     jailed: false,
     jailTurns: 0,
+    jailCards: 0,
   }));
   const fresh = createInitialState(state.hostId);
   fresh.players = players;
