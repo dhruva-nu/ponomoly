@@ -1,17 +1,19 @@
 # Ponomoly
 
 A real-time, turn-based multiplayer property game for **2–6 players**, imported from
-a Claude Design comp. The UI runs on **Next.js (Vercel)**; the
-authoritative game state runs on a **PartyKit** room (Cloudflare Durable Objects).
+a Claude Design comp. The UI runs on **Next.js (Vercel)**; the authoritative game
+state runs on a **Cloudflare Worker** backed by **Durable Objects**.
 
 ```
 Browser ──HTTP──▶ Next.js UI (Vercel)
-        ──WS────▶ PartyKit room (one Durable Object per game) ── authoritative state
+        ──WS────▶ Cloudflare Worker ──▶ GameRoom Durable Object (one per game) ── authoritative state
 ```
 
 Every game is a room identified by a 5-character code. All players connect to the
-same PartyKit room over WebSockets; the server validates each action (turn order,
-affordability, host-only start) and broadcasts the full game state to everyone.
+same `GameRoom` Durable Object over WebSockets; the server validates each action
+(turn order, affordability, host-only start) and broadcasts the full game state to
+everyone. A singleton `Registry` Durable Object tracks active rooms for the
+`/manage` admin console.
 
 ## What's implemented (MVP)
 
@@ -33,7 +35,10 @@ already accommodate these.
 |------|------|
 | `game/` | Shared, dependency-free game model + logic (used by both server and client) |
 | `game/logic.ts` | `applyAction(state, playerId, action)` — the authoritative reducer |
-| `party/server.ts` | PartyKit server: one room = one game, holds + broadcasts state |
+| `worker/index.ts` | Worker entry: routes `/parties/...` to the right Durable Object |
+| `worker/GameRoom.ts` | Durable Object: one room = one game, holds + broadcasts state |
+| `worker/Registry.ts` | Singleton Durable Object: directory of active rooms for `/manage` |
+| `wrangler.toml` | Cloudflare Worker + Durable Object config |
 | `src/lib/usePartyGame.ts` | Client hook: WebSocket connection + state |
 | `src/app/` | Next.js App Router pages (home, `/room/[id]`) |
 | `src/components/` | `Lobby`, `Game`, `Board` |
@@ -41,17 +46,17 @@ already accommodate these.
 ## Run locally
 
 This project uses the **Bun** runtime as its package manager and script runner.
-You need **two** processes — the PartyKit server and the Next.js app.
+You need **two** processes — the Worker (`wrangler dev`) and the Next.js app.
 
-> Note: PartyKit's server always runs on Cloudflare's `workerd` runtime (in both
-> `dev` and deploy) — Bun is used for installs, the Next.js dev/build, and running
+> Note: the Worker always runs on Cloudflare's `workerd` runtime (in both `dev`
+> and deploy) — Bun is used for installs, the Next.js dev/build, and running
 > scripts, not for executing the game server itself.
 
 ```bash
 bun install
 
-# terminal 1 — game server on :1999
-bun run dev:party
+# terminal 1 — game server (Worker + Durable Objects) on :8787
+bun run dev:worker
 
 # terminal 2 — UI on :3000
 bun run dev
@@ -60,7 +65,7 @@ bun run dev
 `.env.local` already points the client at the local server:
 
 ```
-NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:1999
+NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787
 ```
 
 Open http://localhost:3000, create a game, and open the invite link in another
@@ -70,23 +75,28 @@ browser/incognito window to play as a second player.
 
 The two halves deploy independently:
 
-1. **PartyKit** (game logic) → Cloudflare:
+1. **Worker** (game logic) → Cloudflare. First-time setup needs a (free) Cloudflare
+   account; `wrangler` will prompt you to log in.
    ```bash
-   bun run deploy:party      # prints your host, e.g. ponomoly.<user>.partykit.dev
+   bun run deploy:worker     # prints your host, e.g. ponomoly.<subdomain>.workers.dev
+   bunx wrangler secret put ADMIN_PASSWORD   # set the /manage console password
    ```
 2. **Next.js** (UI) → Vercel: import the repo, and set the env var in the Vercel
    project settings:
    ```
-   NEXT_PUBLIC_PARTYKIT_HOST=ponomoly.<user>.partykit.dev
+   NEXT_PUBLIC_PARTYKIT_HOST=ponomoly.<subdomain>.workers.dev
    ```
 
 That single env var is the only link between the two deployments.
+
+> The env var keeps the `NEXT_PUBLIC_PARTYKIT_HOST` name for backwards
+> compatibility; it now points at the Cloudflare Worker host rather than PartyKit.
 
 ## Testing
 
 The multiplayer flow is covered by an over-the-wire test that drives two real
 WebSocket clients through a full turn (lobby → start → roll → buy → end turn →
-reconnect). With `bun run dev:party` running:
+reconnect). With `bun run dev:worker` running:
 
 ```bash
 bun _e2e.mjs   # see scratchpad / commit history for the script

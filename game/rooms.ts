@@ -1,6 +1,6 @@
 // Shared types for the room registry — the lightweight directory of active game
 // rooms surfaced by the management console. Kept free of runtime deps so both
-// the PartyKit servers and the Next.js client can import it.
+// the Worker Durable Objects and the Next.js client can import it.
 
 import type { Phase } from "./types";
 

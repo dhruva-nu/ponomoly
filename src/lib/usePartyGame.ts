@@ -1,11 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import PartySocket from "partysocket";
+// partysocket's generic reconnecting WebSocket — a framework-agnostic WS client
+// (not tied to PartyKit hosting). Gives us auto-reconnect against our Worker.
+import { WebSocket as ReconnectingWebSocket } from "partysocket";
 import type { ClientAction, GameState, ServerMessage } from "@game/types";
 import { getClientId } from "./identity";
 
-const HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:1999";
+const HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:8787";
+const IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(HOST);
+const WS_PROTO = IS_LOCAL ? "ws" : "wss";
 
 export interface PartyGame {
   state: GameState | null;
@@ -20,14 +24,13 @@ export function usePartyGame(roomId: string): PartyGame {
   const [you, setYou] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
-  const socketRef = useRef<PartySocket | null>(null);
+  const socketRef = useRef<ReconnectingWebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new PartySocket({
-      host: HOST,
-      room: roomId,
-      id: getClientId(),
-    });
+    const url =
+      `${WS_PROTO}://${HOST}/parties/main/${encodeURIComponent(roomId)}` +
+      `?id=${encodeURIComponent(getClientId())}`;
+    const socket = new ReconnectingWebSocket(url);
     socketRef.current = socket;
 
     const onOpen = () => setConnected(true);
