@@ -1,7 +1,14 @@
 import { BOARD } from "../board";
-import { BOARD_SIZE, GO_SALARY } from "../constants";
+import { BOARD_SIZE, DOUBLES_TO_JAIL, GO_SALARY, JAIL_FINE, JAIL_MAX_TURNS } from "../constants";
 import { appendLog } from "../helpers";
-import { advanceTurn, eliminatePlayer, enqueueAuctions, resolveLanding } from "../flow";
+import {
+  advanceTurn,
+  eliminatePlayer,
+  enqueueAuctions,
+  resolveLanding,
+  sendToJail,
+  settleDebt,
+} from "../flow";
 import { rollDie } from "../rng";
 import type { ActionContext, HandlerError } from "./context";
 
@@ -16,11 +23,23 @@ function requireLiveTurn(ctx: ActionContext): string | undefined {
   if (ctx.index !== ctx.state.turn) return "Not your turn.";
 }
 
+/** Move the current player forward `total` spaces (crediting GO on a wrap) and
+ *  resolve whatever they land on. */
+function advancePawn(ctx: ActionContext, total: number): void {
+  const { state } = ctx;
+  const player = state.players[state.turn];
+  const before = player.position;
+  player.position = (player.position + total) % BOARD_SIZE;
+  if (player.position < before) player.cash += GO_SALARY; // passed GO
+  resolveLanding(state, ctx.random);
+}
+
 export function handleRoll(ctx: ActionContext): HandlerError {
   const blocked = requireLiveTurn(ctx);
   if (blocked) return blocked;
   const { state } = ctx;
   if (auctionPending(ctx)) return "Resolve the auction first.";
+  if (state.pendingRent !== null) return "Pay the rent you owe first.";
   if (state.dice.rolled || state.pendingBuy !== null) return "Already rolled.";
 
   let d1: number;
@@ -33,14 +52,56 @@ export function handleRoll(ctx: ActionContext): HandlerError {
     d2 = rollDie(ctx.random);
   }
   const total = d1 + d2;
+  const isDoubles = d1 === d2;
   state.dice = { d1, d2, rolled: true };
   state.lastRoll = total;
 
   const player = state.players[state.turn];
-  const before = player.position;
-  player.position = (player.position + total) % BOARD_SIZE;
-  if (player.position < before) player.cash += GO_SALARY; // passed GO
-  resolveLanding(state, ctx.random);
+
+  // Jailed: the roll is an escape attempt, not a normal move.
+  if (player.jailed) {
+    if (isDoubles) {
+      player.jailed = false;
+      player.jailTurns = 0;
+      appendLog(state, `${player.name} rolled doubles and walked free from Jail.`);
+      advancePawn(ctx, total); // leaving on doubles spends the roll — no bonus turn
+      return;
+    }
+    player.jailTurns += 1;
+    if (player.jailTurns >= JAIL_MAX_TURNS) {
+      player.cash -= JAIL_FINE;
+      player.jailed = false;
+      player.jailTurns = 0;
+      appendLog(state, `${player.name} paid $${JAIL_FINE} and was released from Jail.`);
+      settleDebt(state, state.turn);
+      if (!player.bankrupt) advancePawn(ctx, total);
+      return;
+    }
+    appendLog(
+      state,
+      `${player.name} failed to roll doubles (attempt ${player.jailTurns}/${JAIL_MAX_TURNS}) and stays in Jail.`,
+    );
+    return; // the attempt spends the turn
+  }
+
+  // Free play: a third double in a row goes straight to Jail without moving.
+  if (isDoubles) {
+    state.doublesStreak += 1;
+    if (state.doublesStreak >= DOUBLES_TO_JAIL) {
+      appendLog(state, `${player.name} rolled three doubles in a row.`);
+      sendToJail(state, state.turn);
+      return;
+    }
+  } else {
+    state.doublesStreak = 0;
+  }
+
+  advancePawn(ctx, total);
+
+  // Doubles earn another roll — unless the move ended in Jail or busted the player.
+  if (isDoubles && !player.jailed && !player.bankrupt) {
+    state.dice = { ...state.dice, rolled: false };
+  }
 }
 
 export function handleBuy(ctx: ActionContext): HandlerError {

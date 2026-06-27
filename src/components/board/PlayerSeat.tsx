@@ -38,8 +38,8 @@ export default function PlayerSeat({ player, active, slot }: { player: Player; a
           <div style={{ fontWeight: 700, fontSize: 15, color: "#eef4ff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: 0.3 }}>
             {player.name}{!player.connected && " 💤"}
           </div>
-          <div className="font-display" style={{ fontWeight: 700, fontSize: 13, color: "#36e0ff" }}>
-            {player.bankrupt ? "BANKRUPT" : `$${player.cash}`}
+          <div className="font-display" style={{ fontWeight: 700, fontSize: 13, color: player.jailed && !player.bankrupt ? "#ff8a3c" : "#36e0ff" }}>
+            {player.bankrupt ? "BANKRUPT" : player.jailed ? `🔒 JAIL · $${player.cash}` : `$${player.cash}`}
           </div>
         </div>
         {active && (

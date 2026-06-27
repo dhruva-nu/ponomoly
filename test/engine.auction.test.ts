@@ -10,7 +10,7 @@ import { startedGame } from "./support/driver";
  *  an auction among all seated players. Returns the prepared driver. */
 function auctionFor(names: string[]) {
   const game = startedGame(names);
-  game.rigRoll(names[0], 3, 3); // 0 -> space 6
+  game.rigRoll(names[0], 2, 4); // 0 -> space 6 (non-doubles, so the turn's roll is spent)
   game.apply(names[0], { type: "pass" });
   return game;
 }

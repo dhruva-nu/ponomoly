@@ -16,6 +16,7 @@ export function createInitialState(hostId: string | null = null): GameState {
     pendingTrade: null,
     pendingAuction: null,
     auctionQueue: [],
+    doublesStreak: 0,
     lastRoll: null,
     log: [],
     winner: null,
@@ -31,5 +32,10 @@ export function normalizeState(state: GameState): GameState {
   if (state.pendingTrade === undefined) state.pendingTrade = null;
   if (state.pendingAuction === undefined) state.pendingAuction = null;
   if (!state.auctionQueue) state.auctionQueue = [];
+  if (typeof state.doublesStreak !== "number") state.doublesStreak = 0;
+  for (const player of state.players) {
+    if (typeof player.jailed !== "boolean") player.jailed = false;
+    if (typeof player.jailTurns !== "number") player.jailTurns = 0;
+  }
   return state;
 }

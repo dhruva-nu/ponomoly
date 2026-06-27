@@ -59,7 +59,7 @@ describe("endTurn", () => {
     expect(game.apply("Bo", { type: "endTurn" }).error).toBe("Not your turn.");
     expect(game.apply("Ada", { type: "endTurn" }).error).toBe("Roll before ending your turn.");
 
-    game.rigRoll("Ada", 3, 3); // pending purchase
+    game.rigRoll("Ada", 2, 4); // pending purchase (non-doubles)
     expect(game.apply("Ada", { type: "endTurn" }).error).toBe("Resolve the property first.");
     game.apply("Ada", { type: "pass" }); // declining opens an auction
     expect(game.apply("Ada", { type: "endTurn" }).error).toBe("Resolve the auction first.");
@@ -71,7 +71,7 @@ describe("endTurn", () => {
   it("blocks while rent is owed", () => {
     const game = startedGame(["Ada", "Bo"]);
     game.admin({ kind: "setOwner", pos: 6, owner: 1 });
-    game.rigRoll("Ada", 3, 3);
+    game.rigRoll("Ada", 2, 4); // non-doubles, so the roll is spent and rent stands in the way
     expect(game.apply("Ada", { type: "endTurn" }).error).toBe("Pay the rent you owe first.");
   });
 
@@ -95,7 +95,7 @@ describe("endTurn", () => {
     game.admin({ kind: "setCash", target: 1, amount: 5 });
     game.admin({ kind: "setTurn", turn: 1 });
     game.admin({ kind: "movePlayer", target: 1, position: 0 });
-    game.rigRoll("Bo", 3, 3); // Bo owes rent he can't pay
+    game.rigRoll("Bo", 2, 4); // non-doubles; Bo owes rent he can't pay
     game.apply("Bo", { type: "payRent" });
     expect(game.player(1).bankrupt).toBe(true);
     game.apply("Bo", { type: "endTurn" });
