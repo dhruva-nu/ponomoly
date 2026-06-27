@@ -109,10 +109,13 @@ export default function Game({
     holdTimer.current = setTimeout(() => setHoldModals(false), 1650);
   };
 
+  const myselfJailed = view.isMyTurn && !!state.players[view.myIndex]?.jailed;
   const rollLabel = rolling
     ? "Rolling…"
     : state.dice.rolled
     ? `Rolled ${state.dice.d1 + state.dice.d2}`
+    : myselfJailed
+    ? "Roll for Freedom"
     : view.isMyTurn
     ? "Roll Dice"
     : "Waiting…";

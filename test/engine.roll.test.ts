@@ -11,15 +11,16 @@ describe("roll guards", () => {
 
   it("rejects rolling twice in one turn", () => {
     const game = startedGame(["Ada", "Bo"]);
-    game.rigRoll("Ada", 3, 3); // lands on space 6
+    game.rigRoll("Ada", 2, 4); // non-doubles: lands on space 6, turn's roll is spent
     expect(game.apply("Ada", { type: "roll" }).error).toBe("Already rolled.");
   });
 
   it("rolls real dice from the random source when not rigged", () => {
     const game = startedGame(["Ada", "Bo"]);
-    game.apply("Ada", { type: "roll" }, () => 0.5); // each die -> 4
-    expect(game.state.dice).toMatchObject({ d1: 4, d2: 4, rolled: true });
-    expect(game.player(0).position).toBe(8);
+    let call = 0;
+    game.apply("Ada", { type: "roll" }, () => (call++ === 0 ? 0.5 : 0)); // dice -> 4, 1
+    expect(game.state.dice).toMatchObject({ d1: 4, d2: 1, rolled: true });
+    expect(game.player(0).position).toBe(5);
   });
 });
 

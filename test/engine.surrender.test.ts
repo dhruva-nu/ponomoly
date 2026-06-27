@@ -66,8 +66,8 @@ describe("surrender", () => {
 
   it("blocks ending the turn while a departed estate is still on the block", () => {
     const game = startedGame(["Ada", "Bo", "Cy"]);
-    game.admin({ kind: "movePlayer", target: 0, position: 8 });
-    game.rigRoll("Ada", 1, 1); // 8 -> 10 (visiting jail): no buy/rent pending
+    game.admin({ kind: "movePlayer", target: 0, position: 4 });
+    game.rigRoll("Ada", 2, 4); // 4 -> 10 (visiting jail), non-doubles: no buy/rent pending
     game.admin({ kind: "setOwner", pos: 6, owner: 2 });
     game.apply("Cy", { type: "surrender" }); // non-current quit opens an estate auction
     expect(game.state.pendingAuction?.pos).toBe(6);

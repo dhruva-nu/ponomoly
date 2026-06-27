@@ -141,6 +141,18 @@ export function settleAuctionIfReady(state: GameState, now: number): boolean {
   return true;
 }
 
+/** Lock a player in Jail: move them to the cell, flag them, and reset their
+ *  escape-attempt counter. Also clears the doubles streak — being jailed ends the
+ *  current roll sequence. */
+export function sendToJail(state: GameState, playerIdx: number): void {
+  const player = state.players[playerIdx];
+  player.position = JAIL_INDEX;
+  player.jailed = true;
+  player.jailTurns = 0;
+  state.doublesStreak = 0;
+  appendLog(state, `${player.name} was sent to Jail.`);
+}
+
 /** Resolve the effect of the current player landing on their current space. */
 export function resolveLanding(state: GameState, random: RandomSource): void {
   const turn = state.turn;
@@ -156,8 +168,7 @@ export function resolveLanding(state: GameState, random: RandomSource): void {
     appendLog(state, `${player.name} paid $${space.price} ${space.name}.`);
     settleDebt(state, turn);
   } else if (space.t === "gotojail") {
-    player.position = JAIL_INDEX;
-    appendLog(state, `${player.name} was sent to Jail.`);
+    sendToJail(state, turn);
   } else if (space.t === "chance" || space.t === "chest") {
     const delta = drawCardOutcome(random);
     player.cash += delta;
@@ -219,6 +230,7 @@ export function advanceTurn(state: GameState): void {
   } while (state.players[next].bankrupt);
   state.turn = next;
   state.dice = { ...state.dice, rolled: false };
+  state.doublesStreak = 0; // doubles streaks never carry across turns
   state.pendingBuy = null;
   state.pendingRent = null;
   // Auctions outlive turns (a departed player's estate keeps selling), so they

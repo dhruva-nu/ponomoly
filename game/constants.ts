@@ -16,6 +16,15 @@ export const LOG_LIMIT = 6;
 /** Board space index of the Jail cell. */
 export const JAIL_INDEX = 10;
 
+/** Consecutive doubles that send a player straight to Jail. */
+export const DOUBLES_TO_JAIL = 3;
+
+/** Failed escape attempts allowed in Jail before the fine is forced. */
+export const JAIL_MAX_TURNS = 3;
+
+/** Fine paid to leave Jail after the final failed escape attempt. */
+export const JAIL_FINE = 50;
+
 /** Total number of spaces on the board. */
 export const BOARD_SIZE = 40;
 
