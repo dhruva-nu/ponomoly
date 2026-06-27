@@ -67,9 +67,7 @@ export default function Home() {
               textShadow: "0 0 20px rgba(54,224,255,.45)",
             }}
           >
-            PROPERTY
-            <br />
-            TYCOON
+            PONOMOLY
           </div>
           <div style={{ fontSize: 15, fontWeight: 500, color: "#8295b8", marginTop: 10, letterSpacing: 0.5 }}>
             Acquire. Develop. Dominate the grid.

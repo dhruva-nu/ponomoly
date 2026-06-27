@@ -14,7 +14,7 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  title: "Property Tycoon",
+  title: "Ponomoly",
   description: "Acquire. Develop. Dominate the grid. A real-time multiplayer property game.",
 };
 
