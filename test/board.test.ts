@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BOARD,
+  BOARD_CONFIG,
   COLORS,
   MAX_PLAYERS,
   MIN_PLAYERS,
@@ -14,8 +15,12 @@ import {
   sellValue,
   spaceColor,
   unmortgageCost,
+  validateBoardConfig,
 } from "@game/board";
-import { BOARD_SIZE } from "@game/constants";
+import { BOARD_SIZE, STARTING_CASH } from "@game/constants";
+
+/** A deep clone of the shipped config, for mutating into invalid shapes. */
+const cloneConfig = () => JSON.parse(JSON.stringify(BOARD_CONFIG)) as typeof BOARD_CONFIG;
 
 describe("board layout", () => {
   it("has one space per board index with computed grid positions", () => {
@@ -35,6 +40,44 @@ describe("board layout", () => {
     expect(TOKENS.length).toBeGreaterThanOrEqual(MAX_PLAYERS);
     expect(COLORS.length).toBeGreaterThanOrEqual(MIN_PLAYERS);
     expect(RENT_MULT[5]).toBe(8);
+  });
+});
+
+describe("board config", () => {
+  it("ships a valid config that drives the board and starting cash", () => {
+    expect(() => validateBoardConfig(BOARD_CONFIG)).not.toThrow();
+    expect(BOARD_CONFIG.spaces).toHaveLength(BOARD_SIZE);
+    expect(STARTING_CASH).toBe(BOARD_CONFIG.startingCash);
+  });
+
+  it("rejects configs that break engine invariants", () => {
+    const wrongLength = cloneConfig();
+    wrongLength.spaces.pop();
+    expect(() => validateBoardConfig(wrongLength)).toThrow(/40/);
+
+    const noGo = cloneConfig();
+    noGo.spaces[0].t = "chance";
+    expect(() => validateBoardConfig(noGo)).toThrow(/space 0 must be GO/i);
+
+    const noJail = cloneConfig();
+    noJail.spaces[10].t = "chance";
+    expect(() => validateBoardConfig(noJail)).toThrow(/space 10 must be JAIL/i);
+
+    const noGoToJail = cloneConfig();
+    noGoToJail.spaces[30].t = "chance";
+    expect(() => validateBoardConfig(noGoToJail)).toThrow(/GO TO JAIL/i);
+
+    const badStartingCash = cloneConfig();
+    badStartingCash.startingCash = 0;
+    expect(() => validateBoardConfig(badStartingCash)).toThrow(/startingCash/);
+
+    const propNoColor = cloneConfig();
+    delete propNoColor.spaces[1].c;
+    expect(() => validateBoardConfig(propNoColor)).toThrow(/color/i);
+
+    const negativeRent = cloneConfig();
+    negativeRent.spaces[1].rent = -5;
+    expect(() => validateBoardConfig(negativeRent)).toThrow(/rent/i);
   });
 });
 

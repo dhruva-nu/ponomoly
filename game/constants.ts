@@ -1,8 +1,11 @@
 // Tunable game-wide constants. Kept separate so both rules and tests can import
 // them without pulling in the rest of the engine.
 
-/** Cash every player starts the game with. */
-export const STARTING_CASH = 1500;
+import boardConfig from "./board.config.json";
+
+/** Cash every player starts the game with. Authored in game/board.config.json
+ *  (editable via the local /board-editor page). */
+export const STARTING_CASH = boardConfig.startingCash;
 
 /** Cash collected for passing (or landing on) GO. */
 export const GO_SALARY = 200;
