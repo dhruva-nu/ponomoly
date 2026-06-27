@@ -1,5 +1,5 @@
 import type { Auction, GameState } from "./types";
-import { BOARD, isOwnable } from "./board";
+import { BOARD, isOwnable, scopeMatchesSpace } from "./board";
 import { AUCTION_DURATION_MS, BOARD_SIZE, GO_SALARY, JAIL_INDEX } from "./constants";
 import { appendLog, solventPlayerIndices } from "./helpers";
 import { discountedRent, rentFor } from "./rent";
@@ -41,17 +41,20 @@ function removeFromPlay(state: GameState, playerIdx: number): number[] {
   return estate;
 }
 
-/** Tick down the rent agreements `playerIdx` benefits from at the end of their
- *  turn, retiring any that have run their course. */
-function expireRentAgreements(state: GameState, playerIdx: number): void {
+/** Consume the rent clauses `payer` just used by landing on landlord `payee`'s
+ *  property at `position`: every agreement between them whose scope covers that
+ *  space loses one use, and is retired once spent. Clauses are spent by use (an
+ *  actual rent landing), never merely by turns elapsing. */
+function consumeRentAgreements(state: GameState, payer: number, payee: number, position: number): void {
   if (state.rentAgreements.length === 0) return;
   state.rentAgreements = state.rentAgreements.filter((agreement) => {
-    if (agreement.payer !== playerIdx) return true;
+    if (agreement.payer !== payer || agreement.payee !== payee) return true;
+    if (!scopeMatchesSpace(agreement.scope, position)) return true;
     agreement.turnsLeft -= 1;
     if (agreement.turnsLeft > 0) return true;
-    const payer = state.players[agreement.payer]?.name ?? "A player";
-    const payee = state.players[agreement.payee]?.name ?? "another player";
-    appendLog(state, `${payer}'s rent clause on ${payee}'s properties expired.`);
+    const payerName = state.players[agreement.payer]?.name ?? "A player";
+    const payeeName = state.players[agreement.payee]?.name ?? "another player";
+    appendLog(state, `${payerName}'s rent clause on ${payeeName}'s properties is used up.`);
     return false;
   });
 }
@@ -290,6 +293,10 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
       state.mortgaged,
     );
     const rent = discountedRent(state.rentAgreements, fullRent, turn, owner, position);
+    // A clause is consumed the moment it covers a real rent landing, whether or
+    // not it ends up being the one that lowers the bill (mortgaged sites owe no
+    // rent and so don't spend anything).
+    if (fullRent > 0) consumeRentAgreements(state, turn, owner, position);
     state.pendingRent = { pos: position, amount: rent, original: rent, to: owner, payer: turn, negotiating: false };
     if (rent < fullRent) {
       appendLog(state, `${player.name} owes $${rent} rent to ${state.players[owner].name} (was $${fullRent}, trade clause applied).`);
@@ -326,8 +333,8 @@ export function resolveRolloff(state: GameState): void {
 
 /** Hand the turn to the next solvent player, or end the game if only one remains. */
 export function advanceTurn(state: GameState): void {
-  // The player whose turn is ending spends one turn of any clauses they benefit from.
-  expireRentAgreements(state, state.turn);
+  // Rent clauses are spent by use (landing on a covered space), not by turns
+  // elapsing — see consumeRentAgreements — so nothing decrements here.
   const survivors = solventPlayerIndices(state);
   if (survivors.length <= 1) {
     state.phase = "ended";
