@@ -1,9 +1,0 @@
-{
-  "$schema": "https://www.partykit.io/schema.json",
-  "name": "ponomoly",
-  "main": "party/server.ts",
-  "parties": {
-    "registry": "party/registry.ts"
-  },
-  "compatibilityDate": "2024-11-01"
-}

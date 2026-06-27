@@ -1,4 +1,4 @@
-// Shared domain types — used by both the PartyKit server (authoritative) and the
+// Shared domain types — used by both the Worker server (authoritative) and the
 // Next.js client (rendering). Keep this free of any runtime/browser/server deps.
 // Wire-protocol message types live in ./protocol and are re-exported below so
 // `@game/types` remains the single import surface for callers.
