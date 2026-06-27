@@ -5,6 +5,7 @@ import type { GameView } from "./gameView";
 import BuyModal from "./modals/BuyModal";
 import AuctionModal from "./modals/AuctionModal";
 import RolloffModal from "./modals/RolloffModal";
+import WinnerModal from "./modals/WinnerModal";
 import RentModal from "./modals/RentModal";
 import RentPill from "./modals/RentPill";
 import OwnerNegotiateModal from "./modals/OwnerNegotiateModal";
@@ -55,10 +56,16 @@ export default function GameModals({
   const showNegotiate = view.showNegotiate && !holdModals;
   const showAuction = view.auction !== null && !holdModals;
 
+  const isHost = view.myIndex >= 0 && state.players[view.myIndex]?.id === state.hostId;
+
   return (
     <>
       {state.phase === "rolloff" && (
         <RolloffModal state={state} myIndex={view.myIndex} send={send} />
+      )}
+
+      {state.phase === "ended" && state.winner != null && (
+        <WinnerModal state={state} isHost={isHost} send={send} />
       )}
 
       {showBuy && pendingBuy !== null && <BuyModal spaceIndex={pendingBuy} cash={cash} send={send} />}
