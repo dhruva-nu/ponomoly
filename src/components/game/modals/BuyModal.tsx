@@ -1,7 +1,7 @@
 "use client";
 
 import type { ClientAction } from "@game/types";
-import { BOARD } from "@game/board";
+import { BOARD, propRentFor, railRentFor } from "@game/board";
 import Modal from "@/components/ui/Modal";
 import PropertyHeader from "@/components/ui/PropertyHeader";
 import { Stat, StatFrame } from "@/components/ui/StatFrame";
@@ -11,9 +11,9 @@ import { rentRows } from "@/components/board/rentRows";
 
 const TYPE_LABEL: Record<string, string> = { prop: "Property", rail: "Station", util: "Utility" };
 
-function rentSummary(spaceType: string, rent?: number): string {
-  if (spaceType === "prop") return `$${rent}`;
-  if (spaceType === "rail") return "$25/stn";
+function rentSummary(spaceIndex: number, spaceType: string): string {
+  if (spaceType === "prop") return `$${propRentFor(spaceIndex, 0, false)}`;
+  if (spaceType === "rail") return `$${railRentFor(spaceIndex, 1)}/stn`;
   if (spaceType === "util") return "×dice";
   return "—";
 }
@@ -42,7 +42,7 @@ export default function BuyModal({
         <div style={{ ...eyebrowStyle(COLOR.cyan), marginTop: 6 }}>{TYPE_LABEL[space.t]}</div>
         <StatFrame style={{ margin: "18px 4px 4px" }}>
           <Stat label="Price" value={`$${price}`} />
-          <Stat label="Rent" value={rentSummary(space.t, space.rent)} align="right" />
+          <Stat label="Rent" value={rentSummary(spaceIndex, space.t)} align="right" />
         </StatFrame>
 
         <div style={{ ...eyebrowStyle(COLOR.cyan), margin: "16px 2px 8px", textAlign: "left" }}>

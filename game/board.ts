@@ -1,4 +1,4 @@
-import type { Space, SpaceType } from "./types";
+import type { PropRent, RailRent, Space, SpaceType } from "./types";
 import rawBoardConfig from "./board.config.json";
 
 export const TOKENS = ["♠", "♥", "♦", "♣", "★", "◆", "●", "▲"];
@@ -13,8 +13,13 @@ export const COLORS = [
 export const MAX_PLAYERS = 6;
 export const MIN_PLAYERS = 2;
 
-/** Rent multiplier by building level (index 0 = unimproved, 5 = hotel). */
+/** Rent multiplier by building level (index 0 = unimproved, 5 = hotel). Retained
+ *  only as a fallback estimate for boards that ship a bare base rent instead of a
+ *  full {@link PropRent} schedule; authentic boards use their explicit values. */
 export const RENT_MULT = [1, 2, 3, 4, 5, 8];
+
+/** PropRent keys in building-level order: index 1 = one house … 5 = hotel. */
+const PROP_RENT_KEYS = ["base", "house1", "house2", "house3", "house4", "hotel"] as const;
 
 /** Total number of spaces a valid board must define. Mirrors BOARD_SIZE in
  *  constants.ts; kept local to avoid an import cycle (constants reads the same
@@ -63,15 +68,18 @@ export function validateBoardConfig(config: unknown): asserts config is BoardCon
   if (!Array.isArray(c.spaces) || c.spaces.length !== EXPECTED_SPACES) {
     throw new Error(`Board config: spaces must be an array of exactly ${EXPECTED_SPACES} entries.`);
   }
+  const isNonNegNumber = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0;
+
   c.spaces.forEach((space, idx) => {
     if (!space || typeof space !== "object") throw new Error(`Space ${idx}: not an object.`);
     if (!SPACE_TYPES.includes(space.t)) throw new Error(`Space ${idx}: invalid type "${space.t}".`);
     if (typeof space.name !== "string" || space.name.length === 0) {
       throw new Error(`Space ${idx}: name must be a non-empty string.`);
     }
-    for (const key of ["price", "rent"] as const) {
+    for (const key of ["price", "mortgage", "unmortgage", "housePrice"] as const) {
       const v = space[key];
-      if (v !== undefined && (typeof v !== "number" || !Number.isFinite(v) || v < 0)) {
+      if (v !== undefined && !isNonNegNumber(v)) {
         throw new Error(`Space ${idx}: ${key} must be a non-negative number.`);
       }
     }
@@ -82,6 +90,30 @@ export function validateBoardConfig(config: unknown): asserts config is BoardCon
       if (typeof space.price !== "number" || space.price <= 0) {
         throw new Error(`Space ${idx} (${space.name}): a property must have a positive price.`);
       }
+      const rent = space.rent as Partial<PropRent> | undefined;
+      if (!rent || typeof rent !== "object") {
+        throw new Error(`Space ${idx} (${space.name}): a property must define a rent schedule.`);
+      }
+      for (const key of PROP_RENT_KEYS) {
+        if (!isNonNegNumber(rent[key])) {
+          throw new Error(`Space ${idx} (${space.name}): rent.${key} must be a non-negative number.`);
+        }
+      }
+      if (!isNonNegNumber((rent as Partial<PropRent>).set)) {
+        throw new Error(`Space ${idx} (${space.name}): rent.set must be a non-negative number.`);
+      }
+    } else if (space.t === "rail") {
+      const rent = space.rent as Partial<RailRent> | undefined;
+      if (!rent || typeof rent !== "object") {
+        throw new Error(`Space ${idx} (${space.name}): a railroad must define a rent schedule.`);
+      }
+      for (const stations of [1, 2, 3, 4] as const) {
+        if (!isNonNegNumber(rent[stations])) {
+          throw new Error(`Space ${idx} (${space.name}): rent.${stations} must be a non-negative number.`);
+        }
+      }
+    } else if (space.rent !== undefined && typeof space.rent !== "object") {
+      throw new Error(`Space ${idx}: rent must be a rent schedule object.`);
     }
   });
   // Special-tile placement the engine relies on (jail cell index, go-to-jail).
@@ -152,7 +184,24 @@ function houseCostFromPrice(price: number): number {
 export function houseCost(spaceIndex: number): number {
   const space = BOARD[spaceIndex];
   if (space.t !== "prop") return 0;
-  return HOUSE_COST_BY_COLOR[space.c!] ?? houseCostFromPrice(space.price ?? 0);
+  // Prefer the board's explicit build cost; fall back to the color/price estimate
+  // for boards (or editor edits) that omit it.
+  return space.housePrice ?? HOUSE_COST_BY_COLOR[space.c!] ?? houseCostFromPrice(space.price ?? 0);
+}
+
+/** Rent owed for a property at a given building level (0 = unimproved). When
+ *  unimproved, `hasMonopoly` selects the doubled color-set rent. */
+export function propRentFor(spaceIndex: number, level: number, hasMonopoly: boolean): number {
+  const rent = BOARD[spaceIndex].rent as PropRent;
+  if (level >= 1 && level <= 5) return rent[PROP_RENT_KEYS[level]];
+  return hasMonopoly ? rent.set : rent.base;
+}
+
+/** Rent owed for a railroad given how many stations the owner holds (1–4). */
+export function railRentFor(spaceIndex: number, stationsOwned: number): number {
+  const rent = BOARD[spaceIndex].rent as RailRent;
+  const n = Math.min(4, Math.max(1, stationsOwned)) as 1 | 2 | 3 | 4;
+  return rent[n];
 }
 
 /** All board indices in the same color group as `spaceIndex` (properties only). */
@@ -162,14 +211,15 @@ export function colorGroup(spaceIndex: number): number[] {
   return BOARD.filter((s) => s.t === "prop" && s.c === space.c).map((s) => s.idx);
 }
 
-/** Cash raised by mortgaging a property (half its price). */
+/** Cash raised by mortgaging a property (the board's value, else half its price). */
 export function mortgageValue(spaceIndex: number): number {
-  return Math.floor((BOARD[spaceIndex].price || 0) / 2);
+  return BOARD[spaceIndex].mortgage ?? Math.floor((BOARD[spaceIndex].price || 0) / 2);
 }
 
-/** Cost to lift a mortgage: the mortgage value plus 10% interest. */
+/** Cost to lift a mortgage (the board's value, else mortgage value + 10% interest);
+ *  rounded up so cash stays integral. */
 export function unmortgageCost(spaceIndex: number): number {
-  return Math.ceil(mortgageValue(spaceIndex) * 1.1);
+  return Math.ceil(BOARD[spaceIndex].unmortgage ?? mortgageValue(spaceIndex) * 1.1);
 }
 
 /** Cash refunded for selling one house/hotel back to the bank (half build cost). */

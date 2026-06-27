@@ -15,6 +15,27 @@ export type SpaceType =
   | "parking"
   | "gotojail";
 
+/** Authentic per-building rent schedule for a property. */
+export interface PropRent {
+  /** rent when unimproved and the owner lacks the full color set */
+  base: number;
+  /** rent when unimproved but the owner holds the whole color set */
+  set: number;
+  house1: number;
+  house2: number;
+  house3: number;
+  house4: number;
+  hotel: number;
+}
+
+/** Per-count rent schedule for a railroad, keyed by stations the owner holds. */
+export interface RailRent {
+  1: number;
+  2: number;
+  3: number;
+  4: number;
+}
+
 export interface Space {
   idx: number;
   t: SpaceType;
@@ -23,7 +44,15 @@ export interface Space {
   /** color band (properties only) */
   c?: string;
   price?: number;
-  rent?: number;
+  /** Rent schedule: a building-level table for properties, a station-count table
+   *  for railroads. Utilities charge by dice roll and carry no schedule. */
+  rent?: PropRent | RailRent;
+  /** cash raised by mortgaging (defaults to half of price when absent) */
+  mortgage?: number;
+  /** cost to lift a mortgage (defaults to mortgage value + 10% when absent) */
+  unmortgage?: number;
+  /** cost per house/hotel (defaults to a color/price-tier estimate when absent) */
+  housePrice?: number;
   /** [row, col] on the 11x11 board grid (1-indexed) */
   pos: [number, number];
 }
