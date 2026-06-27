@@ -275,6 +275,17 @@ function OwnerSection({ state, run }: { state: GameState; run: (c: AdminCmd) => 
           Assign
         </button>
       </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 7, alignItems: "center" }}>
+        <span style={{ fontSize: 11, color: state.mortgaged[pos] ? "#ff8a3c" : "#5f7196", fontWeight: 600 }}>
+          {state.mortgaged[pos] ? "Mortgaged" : "Not mortgaged"}
+        </span>
+        <button onClick={() => run({ kind: "setMortgage", pos, mortgaged: true })} style={panelBtn("#ff8a3c")}>
+          Mortgage
+        </button>
+        <button onClick={() => run({ kind: "setMortgage", pos, mortgaged: false })} style={panelBtn("#36e0ff")}>
+          Lift
+        </button>
+      </div>
     </div>
   );
 }
