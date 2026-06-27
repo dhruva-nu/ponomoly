@@ -9,7 +9,7 @@ import PlayerSeat, { SEAT_SLOTS } from "./PlayerSeat";
 import PropertyTip from "./PropertyTip";
 
 const HOVER_DELAY = 1000; // ms before the info tooltip appears
-const FALLBACK_PLAYER: Player = { id: "", name: "", token: "", color: "#36e0ff", cash: 0, position: 0, properties: [], connected: true, bankrupt: false, jailed: false, jailTurns: 0 };
+const FALLBACK_PLAYER: Player = { id: "", name: "", token: "", color: "#36e0ff", cash: 0, position: 0, properties: [], connected: true, bankrupt: false, jailed: false, jailTurns: 0, jailCards: 0 };
 
 interface Tooltip {
   spaceIndex: number;

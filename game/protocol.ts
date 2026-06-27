@@ -13,6 +13,8 @@ export type ClientAction =
   | { type: "auctionPass" }
   | { type: "tickAuction" }
   | { type: "surrender" }
+  | { type: "payJailFine" }
+  | { type: "useJailCard" }
   | { type: "payRent" }
   | { type: "requestNegotiate" }
   | { type: "negotiateRent"; amount: number }
