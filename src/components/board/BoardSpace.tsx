@@ -44,21 +44,21 @@ export default function BoardSpace({
       }}
     >
       {space.t === "prop" && (
-        <div style={{ width: "100%", height: 19, background: space.c, marginBottom: 4, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }} />
+        <div style={{ width: "100%", height: "clamp(5px, 1.85vmin, 16px)", background: space.c, marginBottom: 3, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }} />
       )}
       {space.t === "prop" && level > 0 && (
-        <div style={{ fontSize: 11, lineHeight: 1, letterSpacing: -1, marginBottom: 2 }}>{level === 5 ? "🏨" : "🏠".repeat(level)}</div>
+        <div style={{ fontSize: "clamp(6px, 1.05vmin, 10px)", lineHeight: 1, letterSpacing: -1, marginBottom: 2 }}>{level === 5 ? "🏨" : "🏠".repeat(level)}</div>
       )}
       {space.icon && (
-        <div style={{ fontSize: isCorner ? 27 : 22, lineHeight: 1, color: isCorner ? "#c8202a" : "#2c241b", fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700 }}>
+        <div style={{ fontSize: isCorner ? "clamp(12px, 2.6vmin, 24px)" : "clamp(9px, 2.1vmin, 19px)", lineHeight: 1, color: isCorner ? "#c8202a" : "#2c241b", fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700 }}>
           {space.icon}
         </div>
       )}
-      <div style={{ fontSize: isCorner ? 14 : 12, lineHeight: 1.15, textAlign: "center", fontWeight: 600, padding: "0 1px", textTransform: "uppercase", letterSpacing: 0.3, color: "#2c241b" }}>
+      <div style={{ fontSize: isCorner ? "clamp(6px, 1.3vmin, 12px)" : "clamp(5px, 1.12vmin, 10px)", lineHeight: 1.15, textAlign: "center", fontWeight: 600, padding: "0 1px", textTransform: "uppercase", letterSpacing: 0.3, color: "#2c241b", wordBreak: "break-word", overflowWrap: "break-word" }}>
         {space.name}
       </div>
       {priceLabel && (
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#1f7a44", marginTop: 3, fontFamily: "var(--font-orbitron), sans-serif", letterSpacing: 0.3 }}>{priceLabel}</div>
+        <div style={{ fontSize: "clamp(6px, 1.05vmin, 10px)", fontWeight: 700, color: "#1f7a44", marginTop: 2, fontFamily: "var(--font-orbitron), sans-serif", letterSpacing: 0.3 }}>{priceLabel}</div>
       )}
       {ownerColor && (
         <div style={{ position: "absolute", top: 3, right: 3, width: 10, height: 10, borderRadius: "50%", background: ownerColor, border: "1px solid rgba(0,0,0,.4)", boxShadow: "0 1px 2px rgba(0,0,0,.35)" }} />
