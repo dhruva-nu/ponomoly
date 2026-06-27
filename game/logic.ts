@@ -20,6 +20,7 @@ export function createInitialState(hostId: string | null = null): GameState {
     owners: {},
     dice: { d1: 1, d2: 1, rolled: false },
     pendingBuy: null,
+    pendingRent: null,
     lastRoll: null,
     log: [],
     winner: null,
@@ -86,6 +87,7 @@ function advanceTurn(state: GameState) {
   state.turn = t;
   state.dice = { ...state.dice, rolled: false };
   state.pendingBuy = null;
+  state.pendingRent = null;
   pushLog(state, `${state.players[t].name} to act.`);
 }
 
@@ -103,10 +105,8 @@ function resolveLanding(state: GameState) {
       pushLog(state, `${p.name} landed on ${sp.name}.`);
     } else if (owner !== turn) {
       const rent = rentFor(pos, state.owners, state.dice.d1 + state.dice.d2);
-      p.cash -= rent;
-      state.players[owner].cash += rent;
-      pushLog(state, `${p.name} paid $${rent} rent to ${state.players[owner].name}.`);
-      settleDebt(state, turn);
+      state.pendingRent = { pos, amount: rent, original: rent, to: owner, payer: turn, negotiating: false };
+      pushLog(state, `${p.name} owes $${rent} rent to ${state.players[owner].name}.`);
     } else {
       pushLog(state, `${p.name} holds ${sp.name}.`);
     }
@@ -212,6 +212,7 @@ export function applyAction(
       state.turn = 0;
       state.owners = {};
       state.pendingBuy = null;
+      state.pendingRent = null;
       state.dice = { d1: 1, d2: 1, rolled: false };
       state.log = [`${state.players[0].name} to act first.`];
       return { state };
@@ -273,11 +274,56 @@ export function applyAction(
       return { state };
     }
 
+    case "payRent": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (idx !== state.turn) return { state: prev, error: "Not your turn." };
+      if (state.pendingRent === null) return { state, error: "No rent due." };
+      const { amount, to } = state.pendingRent;
+      const p = state.players[state.turn];
+      p.cash -= amount;
+      if (state.players[to]) state.players[to].cash += amount;
+      pushLog(state, `${p.name} paid $${amount} rent to ${state.players[to]?.name ?? "owner"}.`);
+      state.pendingRent = null;
+      settleDebt(state, state.turn);
+      return { state };
+    }
+
+    case "requestNegotiate": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (idx !== state.turn) return { state: prev, error: "Not your turn." };
+      if (state.pendingRent === null) return { state, error: "No rent to negotiate." };
+      state.pendingRent.negotiating = true;
+      const owner = state.players[state.pendingRent.to];
+      pushLog(state, `${state.players[state.turn].name} asked ${owner?.name ?? "the owner"} to negotiate the rent.`);
+      return { state };
+    }
+
+    case "negotiateRent": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (state.pendingRent === null) return { state, error: "No rent to negotiate." };
+      // Only the owner (landlord) may adjust the rent — even though it is not their turn.
+      if (idx !== state.pendingRent.to) return { state: prev, error: "Only the owner can adjust this rent." };
+      const newAmount = clampInt(action.amount, 0, state.pendingRent.original, state.pendingRent.amount);
+      state.pendingRent.amount = newAmount;
+      state.pendingRent.negotiating = false;
+      const owner = state.players[state.pendingRent.to];
+      const payer = state.players[state.pendingRent.payer];
+      if (newAmount === 0) {
+        pushLog(state, `${owner?.name ?? "Owner"} waived the rent for ${payer?.name ?? "the tenant"}.`);
+      } else if (newAmount < state.pendingRent.original) {
+        pushLog(state, `${owner?.name ?? "Owner"} cut the rent to $${newAmount} for ${payer?.name ?? "the tenant"}.`);
+      } else {
+        pushLog(state, `${owner?.name ?? "Owner"} held the rent at $${newAmount}.`);
+      }
+      return { state };
+    }
+
     case "endTurn": {
       if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
       if (idx !== state.turn) return { state: prev, error: "Not your turn." };
       if (!state.dice.rolled) return { state: prev, error: "Roll before ending your turn." };
       if (state.pendingBuy !== null) return { state: prev, error: "Resolve the property first." };
+      if (state.pendingRent !== null) return { state: prev, error: "Pay the rent you owe first." };
       advanceTurn(state);
       return { state };
     }
@@ -345,6 +391,7 @@ function applyAdmin(state: GameState, cmd: AdminCmd): { state: GameState; error?
       state.turn = turn;
       state.dice = { ...state.dice, rolled: false };
       state.pendingBuy = null;
+      state.pendingRent = null;
       pushLog(state, `[admin] It is now ${state.players[turn].name}'s turn.`);
       return { state };
     }

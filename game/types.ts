@@ -59,6 +59,20 @@ export interface GameState {
   dice: Dice;
   /** space index awaiting a buy/pass decision by the current player, else null */
   pendingBuy: number | null;
+  /** rent the current player owes and must confirm paying, else null */
+  pendingRent: {
+    pos: number;
+    /** current amount owed (may be reduced via negotiation) */
+    amount: number;
+    /** the originally computed rent, before any negotiation */
+    original: number;
+    /** owner (landlord) player index */
+    to: number;
+    /** player index who owes the rent */
+    payer: number;
+    /** payer has asked the owner to negotiate; owner should respond */
+    negotiating: boolean;
+  } | null;
   /** most recent dice total, for client animation */
   lastRoll: number | null;
   log: string[];
@@ -77,6 +91,9 @@ export type ClientAction =
   | { type: "roll" }
   | { type: "buy" }
   | { type: "pass" }
+  | { type: "payRent" }
+  | { type: "requestNegotiate" }
+  | { type: "negotiateRent"; amount: number }
   | { type: "endTurn" }
   | { type: "reset" }
   | { type: "admin"; password: string; cmd: AdminCmd };

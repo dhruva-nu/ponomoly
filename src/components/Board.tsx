@@ -1,8 +1,10 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import type { GameState } from "@game/types";
-import { BOARD } from "@game/board";
+import { BOARD, RENT_MULT, isOwnable, spaceColor } from "@game/board";
+
+const HOVER_DELAY = 1000; // ms before the info tooltip appears
 
 const CORNER_TYPES = new Set(["go", "jail", "parking", "gotojail"]);
 
@@ -19,11 +21,32 @@ const SLOTS: CSSProperties[] = [
 export default function Board({ state }: { state: GameState }) {
   const cur = state.players[state.turn] || { token: "", name: "", color: "#36e0ff" };
 
+  // Delayed hover tooltip showing a property's full rent breakdown.
+  const [tip, setTip] = useState<{ idx: number; x: number; y: number } | null>(null);
+  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openTip = (idx: number, e: ReactMouseEvent) => {
+    if (!isOwnable(BOARD[idx].t)) return;
+    const x = e.clientX;
+    const y = e.clientY;
+    if (tipTimer.current) clearTimeout(tipTimer.current);
+    tipTimer.current = setTimeout(() => setTip({ idx, x, y }), HOVER_DELAY);
+  };
+  const moveTip = (e: ReactMouseEvent) => {
+    const x = e.clientX;
+    const y = e.clientY;
+    setTip((t) => (t ? { ...t, x, y } : t));
+  };
+  const closeTip = () => {
+    if (tipTimer.current) clearTimeout(tipTimer.current);
+    setTip(null);
+  };
+
   return (
     <div style={{ position: "relative", padding: "78px 150px" }}>
       <div
         style={{
-          width: "min(54vh, 470px)",
+          width: "min(88vh, 820px)",
           aspectRatio: "1",
           display: "grid",
           gridTemplateColumns: "repeat(11,1fr)",
@@ -55,10 +78,14 @@ export default function Board({ state }: { state: GameState }) {
           return (
             <div
               key={sp.idx}
+              onMouseEnter={(e) => openTip(sp.idx, e)}
+              onMouseMove={moveTip}
+              onMouseLeave={closeTip}
               style={{
                 gridRow: r,
                 gridColumn: c,
                 position: "relative",
+                cursor: isOwnable(sp.t) ? "help" : "default",
                 background: isCorner ? "rgba(20,30,54,.92)" : "rgba(12,19,36,.9)",
                 border: "1px solid rgba(120,180,255,.14)",
                 borderRadius: 4,
@@ -77,9 +104,9 @@ export default function Board({ state }: { state: GameState }) {
                 <div
                   style={{
                     width: "100%",
-                    height: 11,
+                    height: 19,
                     background: sp.c,
-                    marginBottom: 2,
+                    marginBottom: 4,
                     flexShrink: 0,
                     boxShadow: `0 0 10px ${sp.c}cc`,
                   }}
@@ -88,7 +115,7 @@ export default function Board({ state }: { state: GameState }) {
               {sp.icon && (
                 <div
                   style={{
-                    fontSize: isCorner ? 15 : 13,
+                    fontSize: isCorner ? 27 : 22,
                     lineHeight: 1,
                     color: isCorner ? "#36e0ff" : "#b06bff",
                     fontFamily: "var(--font-orbitron), sans-serif",
@@ -101,8 +128,8 @@ export default function Board({ state }: { state: GameState }) {
               )}
               <div
                 style={{
-                  fontSize: isCorner ? 8 : 7,
-                  lineHeight: 1.12,
+                  fontSize: isCorner ? 14 : 12,
+                  lineHeight: 1.15,
                   textAlign: "center",
                   fontWeight: 600,
                   padding: "0 1px",
@@ -116,10 +143,10 @@ export default function Board({ state }: { state: GameState }) {
               {priceLabel && (
                 <div
                   style={{
-                    fontSize: 7,
+                    fontSize: 11,
                     fontWeight: 700,
                     color: "#36e0ff",
-                    marginTop: 1,
+                    marginTop: 3,
                     fontFamily: "var(--font-orbitron), sans-serif",
                     letterSpacing: 0.3,
                   }}
@@ -131,10 +158,10 @@ export default function Board({ state }: { state: GameState }) {
                 <div
                   style={{
                     position: "absolute",
-                    top: 2,
-                    right: 2,
-                    width: 8,
-                    height: 8,
+                    top: 3,
+                    right: 3,
+                    width: 10,
+                    height: 10,
                     borderRadius: "50%",
                     background: ownerColor,
                     boxShadow: `0 0 7px ${ownerColor}`,
@@ -158,15 +185,15 @@ export default function Board({ state }: { state: GameState }) {
                   <div
                     key={p.id}
                     style={{
-                      width: 15,
-                      height: 16,
+                      width: 26,
+                      height: 27,
                       borderRadius: "50% 50% 45% 45%",
                       background: "linear-gradient(180deg, #16243f, #0a1326)",
-                      border: `1.5px solid ${p.color}`,
+                      border: `2px solid ${p.color}`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 9,
+                      fontSize: 14,
                       fontFamily: "var(--font-orbitron), sans-serif",
                       fontWeight: 700,
                       color: p.color,
@@ -324,6 +351,133 @@ export default function Board({ state }: { state: GameState }) {
           </div>
         );
       })}
+
+      {tip && <PropertyTip idx={tip.idx} x={tip.x} y={tip.y} state={state} />}
+    </div>
+  );
+}
+
+/** Rent breakdown rows for an ownable space, matching the game's rent logic. */
+function rentRows(idx: number): { label: string; value: string; hot?: boolean }[] {
+  const sp = BOARD[idx];
+  if (sp.t === "prop") {
+    const base = sp.rent || 0;
+    return [
+      { label: "Rent", value: `$${base}` },
+      { label: "Rent with color set", value: `$${base * 2}` },
+      { label: "With 1 House", value: `$${base * RENT_MULT[1]}` },
+      { label: "With 2 Houses", value: `$${base * RENT_MULT[2]}` },
+      { label: "With 3 Houses", value: `$${base * RENT_MULT[3]}` },
+      { label: "With 4 Houses", value: `$${base * RENT_MULT[4]}` },
+      { label: "With Hotel", value: `$${base * RENT_MULT[5]}`, hot: true },
+    ];
+  }
+  if (sp.t === "rail") {
+    return [
+      { label: "1 Station owned", value: "$25" },
+      { label: "2 Stations owned", value: "$50" },
+      { label: "3 Stations owned", value: "$75" },
+      { label: "4 Stations owned", value: "$100" },
+    ];
+  }
+  if (sp.t === "util") {
+    return [
+      { label: "1 Utility owned", value: "4 × dice roll" },
+      { label: "2 Utilities owned", value: "10 × dice roll" },
+    ];
+  }
+  return [];
+}
+
+function PropertyTip({ idx, x, y, state }: { idx: number; x: number; y: number; state: GameState }) {
+  const sp = BOARD[idx];
+  const col = spaceColor(idx);
+  const rows = rentRows(idx);
+  const typeLabel = sp.t === "prop" ? "Property" : sp.t === "rail" ? "Station" : "Utility";
+  const owner = state.owners[idx];
+  const ownerName =
+    owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].name : null;
+
+  const W = 232;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1920;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 1080;
+  const left = Math.max(8, Math.min(x + 16, vw - W - 8));
+  const top = Math.max(8, Math.min(y + 16, vh - 360));
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left,
+        top,
+        width: W,
+        zIndex: 80,
+        pointerEvents: "none",
+        background: "linear-gradient(180deg, rgba(18,28,52,.98), rgba(8,13,28,.98))",
+        border: "1px solid rgba(120,180,255,.3)",
+        borderRadius: 12,
+        boxShadow: "0 0 40px rgba(54,224,255,.16), 0 24px 50px rgba(0,0,0,.7)",
+        overflow: "hidden",
+        animation: "popIn .12s ease",
+      }}
+    >
+      <div style={{ height: 6, background: col, boxShadow: `0 0 12px ${col}` }} />
+      <div style={{ padding: "12px 14px 14px" }}>
+        <div className="font-display" style={{ fontWeight: 700, fontSize: 16, color: "#eef4ff", lineHeight: 1.1 }}>
+          {sp.name}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 4,
+            fontSize: 10,
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+          }}
+        >
+          <span style={{ color: "#36e0ff" }}>{typeLabel}</span>
+          {sp.price ? <span style={{ color: "#9fb4d8" }}>Price ${sp.price}</span> : null}
+        </div>
+
+        <div
+          style={{
+            marginTop: 10,
+            borderTop: "1px solid rgba(120,180,255,.16)",
+            paddingTop: 8,
+            display: "flex",
+            flexDirection: "column",
+            gap: 5,
+          }}
+        >
+          {rows.map((row) => (
+            <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+              <span style={{ color: "#9fb4d8", fontWeight: 500 }}>{row.label}</span>
+              <span
+                className="font-display"
+                style={{ color: row.hot ? "#ffb84d" : "#dce6fb", fontWeight: 700, letterSpacing: 0.3 }}
+              >
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            marginTop: 10,
+            paddingTop: 8,
+            borderTop: "1px solid rgba(120,180,255,.16)",
+            fontSize: 11,
+            fontWeight: 600,
+            color: ownerName ? "#ff8090" : "#2bd9a0",
+          }}
+        >
+          {ownerName ? `Owned by ${ownerName}` : "Unowned"}
+        </div>
+      </div>
     </div>
   );
 }
