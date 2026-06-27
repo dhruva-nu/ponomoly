@@ -23,7 +23,8 @@ export default function BoardSpace({
   const [row, col] = space.pos;
   const isCorner = CORNER_TYPES.has(space.t);
   const owner = state.owners[space.idx];
-  const ownerColor = owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].color : null;
+  const ownerPlayer = owner !== undefined && owner !== null ? state.players[owner] : undefined;
+  const ownerColor = ownerPlayer ? ownerPlayer.color : null;
   const occupants = state.players.filter((player) => player.position === space.idx);
   const level = state.buildings[space.idx] || 0;
   const priceLabel = isOwnable(space.t) && space.price ? `$${space.price}` : "";
@@ -47,10 +48,14 @@ export default function BoardSpace({
       }}
     >
       {space.t === "prop" && (
-        <div style={{ width: "100%", height: "clamp(5px, 1.85vmin, 16px)", background: space.c, marginBottom: 3, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }} />
-      )}
-      {space.t === "prop" && level > 0 && (
-        <div style={{ fontSize: "clamp(6px, 1.05vmin, 10px)", lineHeight: 1, letterSpacing: -1, marginBottom: 2 }}>{level === 5 ? "🏨" : "🏠".repeat(level)}</div>
+        <div style={{ position: "relative", width: "100%", height: "clamp(5px, 1.85vmin, 16px)", background: space.c, marginBottom: 3, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }}>
+          {/* Houses/hotel sit on the color band, classic-Monopoly style. */}
+          {level > 0 && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "clamp(5px, 1vmin, 9px)", lineHeight: 1, letterSpacing: -1, textShadow: "0 1px 1px rgba(0,0,0,.5)" }}>
+              {level === 5 ? "🏨" : "🏠".repeat(level)}
+            </div>
+          )}
+        </div>
       )}
       {space.icon && (
         <div style={{ fontSize: isCorner ? "clamp(12px, 2.6vmin, 24px)" : "clamp(9px, 2.1vmin, 19px)", lineHeight: 1, color: isCorner ? "#c8202a" : "#2c241b", fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700 }}>
@@ -63,8 +68,22 @@ export default function BoardSpace({
       {priceLabel && (
         <div style={{ fontSize: "clamp(6px, 1.05vmin, 10px)", fontWeight: 700, color: "#1f7a44", marginTop: 2, fontFamily: "var(--font-orbitron), sans-serif", letterSpacing: 0.3 }}>{priceLabel}</div>
       )}
-      {ownerColor && (
-        <div style={{ position: "absolute", top: 3, right: 3, width: 10, height: 10, borderRadius: "50%", background: ownerColor, border: "1px solid rgba(0,0,0,.4)", boxShadow: "0 1px 2px rgba(0,0,0,.35)" }} />
+      {/* Owner badge: the owner's token in their color, matching their pawn so the
+          tile clearly reads as "owned by this player". */}
+      {ownerPlayer && ownerColor && (
+        <div
+          title={`Owned by ${ownerPlayer.name}`}
+          style={{
+            position: "absolute", top: 2, right: 2, minWidth: 13, height: 13, padding: "0 2px",
+            borderRadius: 4, background: "linear-gradient(180deg, #fffdf6, #efe6cd)",
+            border: `1.5px solid ${ownerColor}`, color: ownerColor,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 9, fontWeight: 800, lineHeight: 1, boxShadow: "0 1px 2px rgba(0,0,0,.35)",
+            fontFamily: "var(--font-orbitron), sans-serif",
+          }}
+        >
+          {ownerPlayer.token}
+        </div>
       )}
       {state.mortgaged[space.idx] && (
         <div style={{ position: "absolute", top: 2, left: 2, fontSize: 8, fontWeight: 800, letterSpacing: 0.5, color: "#b85a12", background: "rgba(255,243,224,.92)", border: "1px solid rgba(224,123,37,.7)", borderRadius: 4, padding: "0 3px", lineHeight: 1.4 }}>
