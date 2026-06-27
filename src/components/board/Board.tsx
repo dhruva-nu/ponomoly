@@ -54,9 +54,12 @@ export default function Board({ state, youIndex = -1 }: { state: GameState; youI
         <CenterHub currentPlayer={currentPlayer} />
       </div>
 
-      {state.players.map((player, index) => (
-        <PlayerSeat key={player.id} player={player} active={index === state.turn} slot={SEAT_SLOTS[index]} />
-      ))}
+      {state.players
+        .map((player, index) => ({ player, index }))
+        .filter(({ player }) => !player.bankrupt)
+        .map(({ player, index }) => (
+          <PlayerSeat key={player.id} player={player} active={index === state.turn} slot={SEAT_SLOTS[index]} />
+        ))}
 
       {tooltip && <PropertyTip spaceIndex={tooltip.spaceIndex} x={tooltip.x} y={tooltip.y} state={state} youIndex={youIndex} />}
     </div>
