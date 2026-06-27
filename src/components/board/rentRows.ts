@@ -1,4 +1,4 @@
-import { BOARD, RENT_MULT } from "@game/board";
+import { BOARD, propRentFor, railRentFor } from "@game/board";
 
 export interface RentRow {
   label: string;
@@ -10,23 +10,22 @@ export interface RentRow {
 export function rentRows(spaceIndex: number): RentRow[] {
   const space = BOARD[spaceIndex];
   if (space.t === "prop") {
-    const base = space.rent || 0;
     return [
-      { label: "Rent", value: `$${base}` },
-      { label: "Rent with color set", value: `$${base * 2}` },
-      { label: "With 1 House", value: `$${base * RENT_MULT[1]}` },
-      { label: "With 2 Houses", value: `$${base * RENT_MULT[2]}` },
-      { label: "With 3 Houses", value: `$${base * RENT_MULT[3]}` },
-      { label: "With 4 Houses", value: `$${base * RENT_MULT[4]}` },
-      { label: "With Hotel", value: `$${base * RENT_MULT[5]}`, hot: true },
+      { label: "Rent", value: `$${propRentFor(spaceIndex, 0, false)}` },
+      { label: "Rent with color set", value: `$${propRentFor(spaceIndex, 0, true)}` },
+      { label: "With 1 House", value: `$${propRentFor(spaceIndex, 1, false)}` },
+      { label: "With 2 Houses", value: `$${propRentFor(spaceIndex, 2, false)}` },
+      { label: "With 3 Houses", value: `$${propRentFor(spaceIndex, 3, false)}` },
+      { label: "With 4 Houses", value: `$${propRentFor(spaceIndex, 4, false)}` },
+      { label: "With Hotel", value: `$${propRentFor(spaceIndex, 5, false)}`, hot: true },
     ];
   }
   if (space.t === "rail") {
     return [
-      { label: "1 Station owned", value: "$25" },
-      { label: "2 Stations owned", value: "$50" },
-      { label: "3 Stations owned", value: "$75" },
-      { label: "4 Stations owned", value: "$100" },
+      { label: "1 Station owned", value: `$${railRentFor(spaceIndex, 1)}` },
+      { label: "2 Stations owned", value: `$${railRentFor(spaceIndex, 2)}` },
+      { label: "3 Stations owned", value: `$${railRentFor(spaceIndex, 3)}` },
+      { label: "4 Stations owned", value: `$${railRentFor(spaceIndex, 4)}` },
     ];
   }
   if (space.t === "util") {

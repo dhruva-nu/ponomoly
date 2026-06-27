@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { SpaceType } from "@game/types";
+import type { PropRent, RailRent, SpaceType } from "@game/types";
 import type { BoardConfig } from "@game/board";
 import { COLOR, GRADIENT, solidButtonStyle, ghostButtonStyle, chipButtonStyle, eyebrowStyle } from "@/components/ui/theme";
 
@@ -152,6 +152,8 @@ function SpaceRow({
 }) {
   const isProp = space.t === "prop";
   const num = (v: string) => (v === "" ? undefined : Number(v));
+  const propRent = isProp ? (space.rent as PropRent | undefined) : undefined;
+  const railRent = space.t === "rail" ? (space.rent as RailRent | undefined) : undefined;
   return (
     <div
       style={{
@@ -193,13 +195,27 @@ function SpaceRow({
         placeholder="price"
         style={cell()}
       />
-      <input
-        type="number"
-        value={space.rent ?? ""}
-        onChange={(e) => onPatch({ rent: num(e.target.value) })}
-        placeholder="rent"
-        style={cell()}
-      />
+      {isProp ? (
+        <input
+          type="number"
+          value={propRent?.base ?? ""}
+          onChange={(e) => onPatch({ rent: { ...(propRent as PropRent), base: num(e.target.value) ?? 0 } })}
+          placeholder="base rent"
+          title="Base rent — the full per-house schedule lives in board.config.json"
+          style={cell()}
+        />
+      ) : space.t === "rail" ? (
+        <input
+          type="number"
+          value={railRent?.[1] ?? ""}
+          onChange={(e) => onPatch({ rent: { ...(railRent as RailRent), 1: num(e.target.value) ?? 0 } })}
+          placeholder="1-stn rent"
+          title="One-station rent — the full schedule lives in board.config.json"
+          style={cell()}
+        />
+      ) : (
+        <input value="" disabled placeholder="—" style={{ ...cell(), opacity: 0.4 }} />
+      )}
 
       <div style={{ display: "flex", gap: 4 }}>
         <button onClick={onMoveUp} disabled={!canUp} style={moveBtn(canUp)} title="move up">▲</button>

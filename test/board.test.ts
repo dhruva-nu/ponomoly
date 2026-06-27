@@ -17,6 +17,7 @@ import {
   unmortgageCost,
   validateBoardConfig,
 } from "@game/board";
+import type { PropRent } from "@game/types";
 import { BOARD_SIZE, STARTING_CASH } from "@game/constants";
 
 /** A deep clone of the shipped config, for mutating into invalid shapes. */
@@ -76,7 +77,7 @@ describe("board config", () => {
     expect(() => validateBoardConfig(propNoColor)).toThrow(/color/i);
 
     const negativeRent = cloneConfig();
-    negativeRent.spaces[1].rent = -5;
+    (negativeRent.spaces[1].rent as PropRent).base = -5;
     expect(() => validateBoardConfig(negativeRent)).toThrow(/rent/i);
   });
 });

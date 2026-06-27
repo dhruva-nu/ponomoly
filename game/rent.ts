@@ -1,4 +1,4 @@
-import { BOARD, RENT_MULT, colorGroup, ownsWholeGroup } from "./board";
+import { BOARD, colorGroup, ownsWholeGroup, propRentFor, railRentFor } from "./board";
 
 /** Count how many spaces of a given type the owner of `spaceIndex` holds. */
 function countOwnedOfType(
@@ -26,15 +26,13 @@ export function rentFor(
   if (mortgaged[spaceIndex]) return 0; // mortgaged properties collect no rent
 
   if (space.t === "prop") {
-    const baseRent = space.rent!; // every property defines a base rent
     const buildingLevel = buildings[spaceIndex] || 0;
-    if (buildingLevel > 0) return baseRent * (RENT_MULT[buildingLevel] ?? 1);
-    // Unimproved: rent doubles when the owner holds the whole color group.
+    // Unimproved rent uses the color-set rate when the owner holds the whole group.
     const hasMonopoly = ownsWholeGroup(colorGroup(spaceIndex), owners, owner);
-    return baseRent * (hasMonopoly ? 2 : 1);
+    return propRentFor(spaceIndex, buildingLevel, hasMonopoly);
   }
   if (space.t === "rail") {
-    return 25 * countOwnedOfType(owners, owner, "rail");
+    return railRentFor(spaceIndex, countOwnedOfType(owners, owner, "rail"));
   }
   if (space.t === "util") {
     const utilitiesOwned = countOwnedOfType(owners, owner, "util");
