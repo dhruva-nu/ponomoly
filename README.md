@@ -35,6 +35,7 @@ already accommodate these.
 |------|------|
 | `game/` | Shared, dependency-free game model + logic (used by both server and client) |
 | `game/logic.ts` | `applyAction(state, playerId, action)` — the authoritative reducer |
+| `game/board.config.json` | The editable board: tile order/types, names, colors, prices, rent, starting cash |
 | `worker/index.ts` | Worker entry: routes `/parties/...` to the right Durable Object |
 | `worker/GameRoom.ts` | Durable Object: one room = one game, holds + broadcasts state |
 | `worker/Registry.ts` | Singleton Durable Object: directory of active rooms for `/manage` |
@@ -70,6 +71,19 @@ NEXT_PUBLIC_PARTYKIT_HOST=127.0.0.1:8787
 
 Open http://localhost:3000, create a game, and open the invite link in another
 browser window to play as a second player.
+
+## Editing the board
+
+The board is data, not code: it lives in `game/board.config.json` (tile order &
+types, names, colors, prices, rent, and the starting cash). Both the Worker and
+the UI read from it.
+
+To change it, run the app locally and open **http://localhost:3000/board-editor**.
+Edit the tiles, then **Save to file** — this rewrites `game/board.config.json` in
+place (a dev-only API route; it returns 403 in production). Commit the regenerated
+file and open a PR; deploying the PR ships the new board. Invalid boards (wrong
+tile count, GO/JAIL/GO-TO-JAIL out of place, a property with no price/color) are
+rejected at save time and again when the app loads, so a bad board can't ship.
 
 ## Deploy
 
