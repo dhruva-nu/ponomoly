@@ -5,7 +5,7 @@ import type { GameState, Player } from "@game/types";
 import { BOARD, isOwnable } from "@game/board";
 import BoardSpace from "./BoardSpace";
 import CenterHub from "./CenterHub";
-import PlayerSeat, { SEAT_SLOTS } from "./PlayerSeat";
+import PlayerSeat, { seatLayout } from "./PlayerSeat";
 import PropertyTip from "./PropertyTip";
 
 const HOVER_DELAY = 1000; // ms before the info tooltip appears
@@ -54,12 +54,18 @@ export default function Board({ state, youIndex = -1 }: { state: GameState; youI
         <CenterHub currentPlayer={currentPlayer} />
       </div>
 
-      {state.players
-        .map((player, index) => ({ player, index }))
-        .filter(({ player }) => !player.bankrupt)
-        .map(({ player, index }) => (
-          <PlayerSeat key={player.id} player={player} active={index === state.turn} slot={SEAT_SLOTS[index]} />
-        ))}
+      {(() => {
+        // Lay out only the still-in-play players, spaced evenly for their count
+        // (bankrupt players are gone per #24). `index` keeps the original seat so
+        // turn highlighting tracks the right player; `seat` picks the anchor.
+        const seated = state.players
+          .map((player, index) => ({ player, index }))
+          .filter(({ player }) => !player.bankrupt);
+        const slots = seatLayout(seated.length);
+        return seated.map(({ player, index }, seat) => (
+          <PlayerSeat key={player.id} player={player} active={index === state.turn} slot={slots[seat]} />
+        ));
+      })()}
 
       {tooltip && <PropertyTip spaceIndex={tooltip.spaceIndex} x={tooltip.x} y={tooltip.y} state={state} youIndex={youIndex} />}
     </div>
