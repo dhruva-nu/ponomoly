@@ -21,6 +21,7 @@ export default function GameModals({
   state,
   view,
   send,
+  holdModals,
   rentMinimized,
   setRentMinimized,
   showTrade,
@@ -33,6 +34,7 @@ export default function GameModals({
   state: GameState;
   view: GameView;
   send: (action: ClientAction) => void;
+  holdModals: boolean;
   rentMinimized: boolean;
   setRentMinimized: (value: boolean) => void;
   showTrade: boolean;
@@ -45,11 +47,16 @@ export default function GameModals({
   const { pendingBuy, pendingRent } = state;
   const cash = view.currentPlayer.cash;
 
+  // Hold roll-triggered prompts until the dice have settled (plus a brief pause).
+  const showBuy = view.showBuy && !holdModals;
+  const showRent = view.showRent && !holdModals;
+  const showNegotiate = view.showNegotiate && !holdModals;
+
   return (
     <>
-      {view.showBuy && pendingBuy !== null && <BuyModal spaceIndex={pendingBuy} cash={cash} send={send} />}
+      {showBuy && pendingBuy !== null && <BuyModal spaceIndex={pendingBuy} cash={cash} send={send} />}
 
-      {view.showRent && pendingRent !== null && !rentMinimized && (
+      {showRent && pendingRent !== null && !rentMinimized && (
         <RentModal
           spaceIndex={pendingRent.pos}
           amount={pendingRent.amount}
@@ -61,11 +68,11 @@ export default function GameModals({
           onMinimize={() => setRentMinimized(true)}
         />
       )}
-      {view.showRent && pendingRent !== null && rentMinimized && (
+      {showRent && pendingRent !== null && rentMinimized && (
         <RentPill amount={pendingRent.amount} onOpen={() => setRentMinimized(false)} />
       )}
 
-      {view.showNegotiate && pendingRent !== null && (
+      {showNegotiate && pendingRent !== null && (
         <OwnerNegotiateModal
           spaceIndex={pendingRent.pos}
           original={pendingRent.original}
