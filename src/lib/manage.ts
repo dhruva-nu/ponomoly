@@ -1,14 +1,14 @@
 "use client";
 
 // Client helpers for the room-management console. These talk directly to the
-// PartyKit host over HTTP: the registry party for the room directory, and each
-// game-room party for destructive actions. The admin password is supplied by
+// Worker host over HTTP: the registry Durable Object for the room directory, and
+// each game-room Durable Object for destructive actions. The admin password is supplied by
 // the operator at runtime (typed into the gate) and sent as a header — it's
 // never baked into the bundle.
 
 import type { RoomSummary } from "@game/rooms";
 
-const HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:1999";
+const HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:8787";
 const IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(HOST);
 const BASE = `${IS_LOCAL ? "http" : "https"}://${HOST}`;
 

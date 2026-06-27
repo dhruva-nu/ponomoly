@@ -5,7 +5,7 @@
 .DS_Store
 *.pem
 .env*.local
-.partykit
+.wrangler
 .vercel
 next-env.d.ts.timestamp
 *.tsbuildinfo
