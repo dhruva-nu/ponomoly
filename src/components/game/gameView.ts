@@ -1,4 +1,5 @@
 import type { Auction, GameState, PendingTrade, Player } from "@game/types";
+import { JAIL_FINE } from "@game/constants";
 
 export interface GameView {
   myIndex: number;
@@ -7,6 +8,14 @@ export interface GameView {
   currentPlayer: Player;
   canRoll: boolean;
   canEnd: boolean;
+  /** the viewer is jailed and it is their turn to act */
+  inJail: boolean;
+  /** can pay the fine to leave Jail right now */
+  canPayJailFine: boolean;
+  /** holds a Get Out of Jail Free card usable right now */
+  canUseJailCard: boolean;
+  /** the fine charged to leave Jail */
+  jailFine: number;
   showBuy: boolean;
   showRent: boolean;
   showNegotiate: boolean;
@@ -32,6 +41,9 @@ export function deriveGameView(state: GameState, you: string | null): GameView {
   const solventCount = state.players.filter((player) => !player.bankrupt).length;
   const pendingTrade = state.pendingTrade;
   const portfolioIndex = isSpectator ? state.turn : myIndex;
+  const me = myIndex >= 0 ? state.players[myIndex] : undefined;
+  // Voluntary jail exits are offered at the start of the turn, before any roll.
+  const inJail = isMyTurn && playing && !!me?.jailed && !state.dice.rolled;
 
   return {
     myIndex,
@@ -45,6 +57,10 @@ export function deriveGameView(state: GameState, you: string | null): GameView {
       state.pendingBuy === null &&
       state.pendingRent === null &&
       state.pendingAuction === null,
+    inJail,
+    canPayJailFine: inJail && (me?.cash ?? 0) >= JAIL_FINE,
+    canUseJailCard: inJail && (me?.jailCards ?? 0) > 0,
+    jailFine: JAIL_FINE,
     showBuy: state.pendingBuy !== null && isMyTurn,
     showRent: state.pendingRent !== null && isMyTurn,
     showNegotiate: state.pendingRent !== null && state.pendingRent.negotiating && myIndex === state.pendingRent.to,

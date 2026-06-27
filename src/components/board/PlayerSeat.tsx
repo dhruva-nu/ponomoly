@@ -36,7 +36,7 @@ export default function PlayerSeat({ player, active, slot }: { player: Player; a
         </div>
         <div style={{ minWidth: 0, textAlign: "left" }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: "#eef4ff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: 0.3 }}>
-            {player.name}{!player.connected && " 💤"}
+            {player.name}{!player.connected && " 💤"}{player.jailCards > 0 && ` 🎟${player.jailCards > 1 ? `×${player.jailCards}` : ""}`}
           </div>
           <div className="font-display" style={{ fontWeight: 700, fontSize: 13, color: player.jailed && !player.bankrupt ? "#ff8a3c" : "#36e0ff" }}>
             {player.bankrupt ? "BANKRUPT" : player.jailed ? `🔒 JAIL · $${player.cash}` : `$${player.cash}`}
