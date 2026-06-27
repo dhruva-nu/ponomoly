@@ -94,7 +94,7 @@ export default function Game({
       );
       if (ackTimer.current) clearTimeout(ackTimer.current);
       ackTimer.current = setTimeout(() => setTradeAck(null), 6000);
-    } else if (latest.includes("acquired")) {
+    } else if (latest.includes("acquired") || latest.includes("at auction for")) {
       setConfetti((n) => n + 1);
     }
   }, [state.log]);

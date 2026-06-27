@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ClientAction, GameState } from "@game/types";
 import { COLOR } from "@/components/ui/theme";
 import { PrimaryButton } from "@/components/ui/Buttons";
@@ -30,6 +31,8 @@ export default function GameSidebar({
   onBuild: (spaceIndex: number) => void;
   onManage: (kind: ManageKind, spaceIndex: number) => void;
 }) {
+  const [confirmSurrender, setConfirmSurrender] = useState(false);
+
   const turnLabel = view.isSpectator
     ? `Spectating · ${view.currentPlayer.name}'s turn`
     : view.isMyTurn
@@ -94,6 +97,47 @@ export default function GameSidebar({
       <PrimaryButton onClick={() => send({ type: "endTurn" })} disabled={!view.canEnd} style={{ flex: "none", padding: 13, letterSpacing: 1.5 }}>
         End Turn
       </PrimaryButton>
+
+      {view.canSurrender &&
+        (confirmSurrender ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ flex: 1, fontSize: 11, color: COLOR.rose, fontWeight: 600 }}>
+              Quit and auction off everything you own?
+            </span>
+            <button
+              onClick={() => {
+                send({ type: "surrender" });
+                setConfirmSurrender(false);
+              }}
+              style={{
+                border: "1px solid rgba(255,90,110,.6)", background: "rgba(255,90,110,.16)", color: COLOR.red,
+                fontWeight: 700, fontSize: 11, padding: "6px 10px", borderRadius: 7, cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setConfirmSurrender(false)}
+              style={{
+                border: "1px solid rgba(120,180,255,.3)", background: "transparent", color: COLOR.muted,
+                fontWeight: 700, fontSize: 11, padding: "6px 10px", borderRadius: 7, cursor: "pointer", flexShrink: 0,
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmSurrender(true)}
+            style={{
+              border: "1px solid rgba(255,90,110,.35)", background: "transparent", color: COLOR.rose,
+              fontWeight: 700, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase",
+              padding: 9, borderRadius: 10, cursor: "pointer",
+            }}
+          >
+            🏳 Surrender
+          </button>
+        ))}
 
       <ActivityLog lines={state.log} />
     </div>
