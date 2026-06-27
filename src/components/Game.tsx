@@ -93,7 +93,7 @@ export default function Game({
     lastCardIdRef.current = id;
     setCardAck({ deck: card.deck, text: card.text, name: state.players[card.player]?.name ?? "A player" });
     if (cardTimer.current) clearTimeout(cardTimer.current);
-    cardTimer.current = setTimeout(() => setCardAck(null), 2000);
+    cardTimer.current = setTimeout(() => setCardAck(null), 4500);
   }, [state.lastCard, state.players]);
 
   // Pop a toast whenever a player collects their GO salary. Mirrors the trade
@@ -133,11 +133,11 @@ export default function Game({
       setTradeAck(
         t
           ? {
-              fromName: state.players[t.from]?.name ?? "A player",
-              toName: state.players[t.to]?.name ?? "another player",
-              fromGives: describeSide(t.offerProps, t.offerCash),
-              toGives: describeSide(t.requestProps, t.requestCash),
-            }
+            fromName: state.players[t.from]?.name ?? "A player",
+            toName: state.players[t.to]?.name ?? "another player",
+            fromGives: describeSide(t.offerProps, t.offerCash),
+            toGives: describeSide(t.requestProps, t.requestCash),
+          }
           : null
       );
       if (ackTimer.current) clearTimeout(ackTimer.current);
@@ -161,12 +161,12 @@ export default function Game({
   const rollLabel = rolling
     ? "Rolling…"
     : state.dice.rolled
-    ? `Rolled ${state.dice.d1 + state.dice.d2}`
-    : myselfJailed
-    ? "Roll for Freedom"
-    : view.isMyTurn
-    ? "Roll Dice"
-    : "Waiting…";
+      ? `Rolled ${state.dice.d1 + state.dice.d2}`
+      : myselfJailed
+        ? "Roll for Freedom"
+        : view.isMyTurn
+          ? "Roll Dice"
+          : "Waiting…";
 
   return (
     <div style={{
