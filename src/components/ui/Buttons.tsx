@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { GRADIENT, ghostButtonStyle, solidButtonStyle } from "./theme";
+import { COLOR, GRADIENT, ghostButtonStyle, solidButtonStyle } from "./theme";
 
 /** Filled, glowing primary action. Pass a `gradient` to change the accent. */
 export function PrimaryButton({
@@ -45,7 +45,7 @@ export function GhostButton({
     <button
       onClick={() => !disabled && onClick()}
       disabled={disabled}
-      style={{ ...base, color: disabled ? "#5f7196" : base.color, cursor: disabled ? "default" : "pointer", ...style }}
+      style={{ ...base, color: disabled ? COLOR.dim : base.color, cursor: disabled ? "default" : "pointer", ...style }}
     >
       {children}
     </button>

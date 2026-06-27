@@ -13,8 +13,8 @@ function TradeSide({ label, props, cash, accent }: { label: string; props: numbe
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         {props.map((spaceIndex) => (
           <div key={spaceIndex} style={{
-            background: "rgba(8,14,28,.7)",
-            border: "1px solid rgba(120,180,255,.16)",
+            background: "#f6efdd",
+            border: "1px solid rgba(0,0,0,.15)",
             borderLeft: `5px solid ${spaceColor(spaceIndex)}`,
             borderRadius: 7, padding: "6px 9px", fontSize: 12, fontWeight: 600, color: COLOR.text,
           }}>
@@ -47,7 +47,7 @@ export default function IncomingTradeModal({
 
   return (
     <Modal accent={COLOR.purple} width={460} zIndex={75} cardStyleOverride={{ padding: 22, borderRadius: 16 }}>
-      <div className="font-display" style={{ fontWeight: 800, fontSize: 17, color: COLOR.lavender, letterSpacing: 1 }}>⇄ TRADE OFFER</div>
+      <div className="font-display" style={{ fontWeight: 800, fontSize: 17, color: COLOR.purple, letterSpacing: 1 }}>⇄ TRADE OFFER</div>
       <div style={{ fontSize: 13, color: COLOR.text, marginTop: 6 }}>
         <strong style={{ color: COLOR.ink }}>{proposer?.name ?? "A player"}</strong> wants to trade with you.
       </div>

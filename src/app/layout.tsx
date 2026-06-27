@@ -1,21 +1,24 @@
 import type { Metadata } from "next";
-import { Orbitron, Rajdhani } from "next/font/google";
+import { Passion_One, Oswald } from "next/font/google";
 import "./globals.css";
 
-const orbitron = Orbitron({
+// Display face (logo / headings) — kept under the legacy `--font-orbitron`
+// variable name so existing `var(--font-orbitron)` usages pick it up.
+const displayFont = Passion_One({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["400", "700", "900"],
   variable: "--font-orbitron",
 });
-const rajdhani = Rajdhani({
+// Body face — condensed, board-label feel — under the legacy `--font-rajdhani`.
+const bodyFont = Oswald({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-rajdhani",
 });
 
 export const metadata: Metadata = {
   title: "Ponomoly",
-  description: "Acquire. Develop. Dominate the grid. A real-time multiplayer property game.",
+  description: "Buy, build, and bankrupt your friends. A real-time multiplayer property game.",
 };
 
 export default function RootLayout({
@@ -25,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${orbitron.variable} ${rajdhani.variable}`}>{children}</body>
+      <body className={`${displayFont.variable} ${bodyFont.variable}`}>{children}</body>
     </html>
   );
 }

@@ -8,7 +8,7 @@ import GameSidebar from "./game/sidebar/GameSidebar";
 import GameModals, { type ManageTarget } from "./game/GameModals";
 import Confetti from "./game/Confetti";
 import { deriveGameView } from "./game/gameView";
-import { COLOR } from "./ui/theme";
+import { COLOR, GRADIENT } from "./ui/theme";
 
 interface TradeAck {
   fromName: string;
@@ -149,9 +149,9 @@ export default function Game({
             gap: 6,
             padding: "14px 24px",
             borderRadius: 16,
-            background: "linear-gradient(135deg, rgba(176,107,255,.96), rgba(90,140,255,.96))",
+            background: GRADIENT.trade,
             color: COLOR.abyss,
-            boxShadow: "0 0 30px rgba(176,107,255,.5), 0 14px 40px rgba(0,0,0,.45)",
+            boxShadow: "0 12px 30px rgba(34,24,8,.3)",
             animation: "popIn .25s ease",
             pointerEvents: "none",
             textAlign: "center",
@@ -161,7 +161,7 @@ export default function Game({
             <span style={{ fontSize: 18 }}>🤝</span>
             {tradeAck.fromName} ⇄ {tradeAck.toName}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: "rgba(4,18,31,.85)" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: "rgba(251,247,236,.9)" }}>
             <strong>{tradeAck.fromName}</strong> gave {tradeAck.fromGives}
             {"  •  "}
             <strong>{tradeAck.toName}</strong> gave {tradeAck.toGives}

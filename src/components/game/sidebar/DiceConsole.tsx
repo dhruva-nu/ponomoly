@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dice } from "@game/types";
-import { COLOR } from "@/components/ui/theme";
+import { COLOR, GRADIENT } from "@/components/ui/theme";
 import { PrimaryButton } from "@/components/ui/Buttons";
 import Die from "../Die";
 
@@ -21,15 +21,15 @@ export default function DiceConsole({
 }) {
   return (
     <div style={{
-      background: "linear-gradient(180deg, rgba(18,28,52,.78), rgba(10,16,32,.78))",
-      border: "1px solid rgba(54,224,255,.22)",
+      background: GRADIENT.panel,
+      border: "1px solid rgba(0,0,0,.15)",
       borderRadius: 14,
       padding: 16,
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       gap: 13,
-      boxShadow: "0 0 30px rgba(54,224,255,.08)",
+      boxShadow: "0 6px 18px rgba(34,24,8,.18)",
     }}>
       <div style={{ fontWeight: 600, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: COLOR.cyan }}>
         Dice Console

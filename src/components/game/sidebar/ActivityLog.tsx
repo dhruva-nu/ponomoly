@@ -6,8 +6,8 @@ import { COLOR } from "@/components/ui/theme";
 export default function ActivityLog({ lines }: { lines: string[] }) {
   return (
     <div style={{
-      background: "rgba(6,10,20,.85)",
-      border: "1px solid rgba(120,180,255,.14)",
+      background: "#fbf7ea",
+      border: "1px solid rgba(0,0,0,.15)",
       color: COLOR.muted,
       borderRadius: 12,
       padding: "13px 15px",
