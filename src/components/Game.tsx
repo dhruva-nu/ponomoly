@@ -58,6 +58,7 @@ export default function Game({
   send: (a: ClientAction) => void;
 }) {
   const [rolling, setRolling] = useState(false);
+  const [rentMinimized, setRentMinimized] = useState(false);
   const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const myIndex = state.players.findIndex((p) => p.id === you);
@@ -66,8 +67,20 @@ export default function Game({
   const cur = state.players[state.turn];
 
   const canRoll = isMyTurn && !state.dice.rolled && state.pendingBuy === null && state.phase === "playing";
-  const canEnd = isMyTurn && state.dice.rolled && state.pendingBuy === null;
+  const canEnd = isMyTurn && state.dice.rolled && state.pendingBuy === null && state.pendingRent === null;
   const showBuy = state.pendingBuy !== null && isMyTurn;
+  const showRent = state.pendingRent !== null && isMyTurn;
+  // Owner gets a negotiation popup when the tenant has asked them to adjust the rent.
+  const showNegotiate = state.pendingRent !== null && state.pendingRent.negotiating && myIndex === state.pendingRent.to;
+
+  // Re-open the rent modal whenever a new rent appears or the owner changes the
+  // amount/negotiation status, so a minimized prompt resurfaces with fresh info.
+  const rentKey = state.pendingRent
+    ? `${state.pendingRent.pos}:${state.pendingRent.amount}:${state.pendingRent.negotiating}`
+    : "";
+  useEffect(() => {
+    setRentMinimized(false);
+  }, [rentKey]);
 
   // Brief local dice shake when a roll is in flight.
   useEffect(() => {
@@ -105,7 +118,7 @@ export default function Game({
         gap: 18,
         alignItems: "center",
         width: "100%",
-        maxWidth: 1220,
+        maxWidth: 1520,
         justifyContent: "center",
         flexWrap: "wrap",
         marginTop: 10,
@@ -299,6 +312,378 @@ export default function Game({
       {showBuy && state.pendingBuy !== null && (
         <BuyModal posIdx={state.pendingBuy} cash={cur.cash} send={send} />
       )}
+
+      {/* Rent modal (tenant) — full when open, a pill when minimized */}
+      {showRent && state.pendingRent !== null && !rentMinimized && (
+        <RentModal
+          posIdx={state.pendingRent.pos}
+          amount={state.pendingRent.amount}
+          original={state.pendingRent.original}
+          negotiating={state.pendingRent.negotiating}
+          ownerName={state.players[state.pendingRent.to]?.name ?? "owner"}
+          cash={cur.cash}
+          send={send}
+          onMinimize={() => setRentMinimized(true)}
+        />
+      )}
+      {showRent && state.pendingRent !== null && rentMinimized && (
+        <RentPill amount={state.pendingRent.amount} onOpen={() => setRentMinimized(false)} />
+      )}
+
+      {/* Negotiation modal (owner) */}
+      {showNegotiate && state.pendingRent !== null && (
+        <OwnerNegotiateModal
+          posIdx={state.pendingRent.pos}
+          original={state.pendingRent.original}
+          current={state.pendingRent.amount}
+          tenantName={state.players[state.pendingRent.payer]?.name ?? "the tenant"}
+          send={send}
+        />
+      )}
+    </div>
+  );
+}
+
+function RentPill({ amount, onOpen }: { amount: number; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      style={{
+        position: "fixed",
+        right: 20,
+        bottom: 20,
+        zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        background: "linear-gradient(135deg,#ff6a7e,#ff9a5a)",
+        color: "#1a0408",
+        border: "none",
+        borderRadius: 999,
+        padding: "12px 18px",
+        fontWeight: 700,
+        fontSize: 13,
+        letterSpacing: 0.5,
+        cursor: "pointer",
+        boxShadow: "0 0 22px rgba(255,90,110,.5), 0 10px 30px rgba(0,0,0,.5)",
+        animation: "popIn .2s ease",
+      }}
+    >
+      <span style={{ fontSize: 16 }}>⚠</span>
+      Rent due ${amount} — tap to resolve
+    </button>
+  );
+}
+
+function RentModal({
+  posIdx,
+  amount,
+  original,
+  negotiating,
+  ownerName,
+  cash,
+  send,
+  onMinimize,
+}: {
+  posIdx: number;
+  amount: number;
+  original: number;
+  negotiating: boolean;
+  ownerName: string;
+  cash: number;
+  send: (a: ClientAction) => void;
+  onMinimize: () => void;
+}) {
+  const sp = BOARD[posIdx];
+  const col = spaceColor(posIdx);
+  const broke = cash < amount;
+  const reduced = amount < original;
+  const waived = amount === 0;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(4,7,14,.74)",
+        backdropFilter: "blur(3px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: 300,
+          background: "linear-gradient(180deg, rgba(18,28,52,.96), rgba(9,14,28,.96))",
+          border: "1px solid rgba(255,120,140,.3)",
+          borderRadius: 14,
+          boxShadow: "0 0 50px rgba(255,90,110,.16),0 30px 70px rgba(0,0,0,.7)",
+          overflow: "hidden",
+          animation: "popIn .25s ease",
+        }}
+      >
+        {/* Minimize — defer the prompt and pay when ready */}
+        <button
+          onClick={onMinimize}
+          title="Minimize — pay later this turn"
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 2,
+            width: 28,
+            height: 28,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 7,
+            border: "1px solid rgba(255,255,255,.3)",
+            background: "rgba(0,0,0,.25)",
+            color: "#fff",
+            fontSize: 18,
+            lineHeight: 1,
+            cursor: "pointer",
+          }}
+        >
+          —
+        </button>
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${col}, ${col}aa)`,
+            height: 64,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `inset 0 0 40px rgba(0,0,0,.25), 0 0 24px ${col}55`,
+          }}
+        >
+          <span className="font-display" style={{ fontSize: 24, color: "#eef4ff", textShadow: "0 0 12px rgba(255,255,255,.5)" }}>
+            {sp.t === "prop" ? "⌂" : sp.icon || "⌂"}
+          </span>
+        </div>
+        <div style={{ padding: "20px 20px 22px", textAlign: "center" }}>
+          <div className="font-display" style={{ fontWeight: 700, fontSize: 19, lineHeight: 1.1, color: "#eef4ff" }}>
+            {sp.name}
+          </div>
+          <div style={{ fontSize: 10, color: "#ff8090", fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, marginTop: 6 }}>
+            Rent due to {ownerName}
+          </div>
+          <div
+            style={{
+              margin: "18px 4px 4px",
+              borderTop: "1px solid rgba(120,180,255,.16)",
+              borderBottom: "1px solid rgba(120,180,255,.16)",
+              padding: "14px 2px",
+            }}
+          >
+            <div style={{ color: "#6f82a8", fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>Amount</div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 8 }}>
+              {reduced && (
+                <span className="font-display" style={{ fontWeight: 600, fontSize: 16, color: "#6f82a8", textDecoration: "line-through" }}>
+                  ${original}
+                </span>
+              )}
+              <span className="font-display" style={{ fontWeight: 700, fontSize: 28, color: waived ? "#2bd9a0" : "#ff8090" }}>
+                ${amount}
+              </span>
+            </div>
+            {reduced && (
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#2bd9a0", marginTop: 4 }}>
+                {waived ? `${ownerName} waived your rent` : `${ownerName} cut your rent`}
+              </div>
+            )}
+          </div>
+          <div style={{ marginTop: 12, fontWeight: 600, fontSize: 13, letterSpacing: 0.4, color: broke ? "#ff8090" : "#9fb4d8" }}>
+            {negotiating
+              ? `Waiting for ${ownerName} to respond…`
+              : broke
+              ? "You can't cover this — paying will bankrupt you."
+              : `Your cash: $${cash}`}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+            <button
+              onClick={() => send({ type: "requestNegotiate" })}
+              disabled={negotiating || waived}
+              style={{
+                flex: 1,
+                border: "1px solid rgba(120,180,255,.3)",
+                background: "transparent",
+                color: negotiating || waived ? "#5f7196" : "#9fb4d8",
+                fontWeight: 700,
+                fontSize: 12,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                padding: 12,
+                borderRadius: 9,
+                cursor: negotiating || waived ? "default" : "pointer",
+              }}
+            >
+              {negotiating ? "Pending…" : "Negotiate"}
+            </button>
+            <button
+              onClick={() => send({ type: "payRent" })}
+              style={{
+                flex: 1,
+                border: "none",
+                background: waived ? "linear-gradient(135deg,#2bd9a0,#36e0ff)" : "linear-gradient(135deg,#ff6a7e,#ff9a5a)",
+                color: waived ? "#04121f" : "#1a0408",
+                fontWeight: 700,
+                fontSize: 12,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                padding: 12,
+                borderRadius: 9,
+                cursor: "pointer",
+                boxShadow: waived ? "0 0 18px rgba(43,217,160,.4)" : "0 0 18px rgba(255,90,110,.4)",
+              }}
+            >
+              {waived ? "Accept (Free)" : broke ? `Pay $${amount} (bust)` : `Pay $${amount}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OwnerNegotiateModal({
+  posIdx,
+  original,
+  current,
+  tenantName,
+  send,
+}: {
+  posIdx: number;
+  original: number;
+  current: number;
+  tenantName: string;
+  send: (a: ClientAction) => void;
+}) {
+  const sp = BOARD[posIdx];
+  const col = spaceColor(posIdx);
+  const [value, setValue] = useState(current);
+  const clamped = Math.max(0, Math.min(original, Math.round(value) || 0));
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(4,7,14,.74)",
+        backdropFilter: "blur(3px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 60,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          width: 320,
+          background: "linear-gradient(180deg, rgba(18,28,52,.96), rgba(9,14,28,.96))",
+          border: "1px solid rgba(54,224,255,.3)",
+          borderRadius: 14,
+          boxShadow: "0 0 50px rgba(54,224,255,.16),0 30px 70px rgba(0,0,0,.7)",
+          overflow: "hidden",
+          animation: "popIn .25s ease",
+        }}
+      >
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${col}, ${col}aa)`,
+            height: 56,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `inset 0 0 40px rgba(0,0,0,.25), 0 0 24px ${col}55`,
+          }}
+        >
+          <span className="font-display" style={{ fontSize: 22, color: "#eef4ff", textShadow: "0 0 12px rgba(255,255,255,.5)" }}>
+            {sp.t === "prop" ? "⌂" : sp.icon || "⌂"}
+          </span>
+        </div>
+        <div style={{ padding: "18px 20px 22px", textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: "#36e0ff", fontWeight: 600, textTransform: "uppercase", letterSpacing: 2 }}>
+            Rent negotiation
+          </div>
+          <div style={{ fontSize: 14, color: "#dce6fb", fontWeight: 500, marginTop: 8, lineHeight: 1.4 }}>
+            <strong style={{ color: "#eef4ff" }}>{tenantName}</strong> wants to negotiate rent on{" "}
+            <strong style={{ color: "#eef4ff" }}>{sp.name}</strong>.
+          </div>
+          <div style={{ fontSize: 12, color: "#6f82a8", marginTop: 6 }}>
+            Full rent: <span style={{ color: "#9fb4d8", fontWeight: 600 }}>${original}</span>
+          </div>
+
+          <div style={{ margin: "16px 0 4px" }}>
+            <div className="font-display" style={{ fontWeight: 700, fontSize: 30, color: clamped === 0 ? "#2bd9a0" : "#36e0ff" }}>
+              ${clamped}
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={original}
+              step={1}
+              value={clamped}
+              onChange={(e) => setValue(Number(e.target.value))}
+              style={{ width: "100%", marginTop: 8, accentColor: "#36e0ff" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            {[
+              { label: "Waive", v: 0 },
+              { label: "Half", v: Math.round(original / 2) },
+              { label: "Full", v: original },
+            ].map((q) => (
+              <button
+                key={q.label}
+                onClick={() => setValue(q.v)}
+                style={{
+                  flex: 1,
+                  border: "1px solid rgba(120,180,255,.25)",
+                  background: clamped === q.v ? "rgba(54,224,255,.18)" : "transparent",
+                  color: "#cfe0ff",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                  padding: "8px 0",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => send({ type: "negotiateRent", amount: clamped })}
+            style={{
+              width: "100%",
+              marginTop: 18,
+              border: "none",
+              background: "linear-gradient(135deg,#36e0ff,#5a8cff)",
+              color: "#04121f",
+              fontWeight: 700,
+              fontSize: 13,
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+              padding: 13,
+              borderRadius: 9,
+              cursor: "pointer",
+              boxShadow: "0 0 18px rgba(54,224,255,.4)",
+            }}
+          >
+            {clamped === 0 ? "Waive rent" : clamped === original ? "Charge full rent" : `Set rent to $${clamped}`}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
