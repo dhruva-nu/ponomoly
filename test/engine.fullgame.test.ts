@@ -6,14 +6,14 @@ describe("a full turn loop", () => {
     const game = startedGame(["Ada", "Bo"]);
 
     // Ada buys Azure Ave (space 6, $100) and ends her turn.
-    game.rigRoll("Ada", 3, 3);
+    game.rigRoll("Ada", 2, 4);
     game.apply("Ada", { type: "buy" });
     game.apply("Ada", { type: "endTurn" });
     expect(game.state.owners[6]).toBe(0);
     expect(game.state.turn).toBe(1);
 
     // Bo buys Sky Street (space 8, $100) and ends his turn.
-    game.rigRoll("Bo", 4, 4);
+    game.rigRoll("Bo", 3, 5);
     game.apply("Bo", { type: "buy" });
     game.apply("Bo", { type: "endTurn" });
     expect(game.state.owners[8]).toBe(1);
@@ -21,7 +21,7 @@ describe("a full turn loop", () => {
 
     // Ada lands on Bo's Sky Street next lap and pays rent.
     game.admin({ kind: "movePlayer", target: 0, position: 2 });
-    game.rigRoll("Ada", 3, 3); // 2 + 6 = 8, owes Bo $6
+    game.rigRoll("Ada", 2, 4); // 2 + 6 = 8, owes Bo $6
     expect(game.state.pendingRent).toMatchObject({ to: 1, payer: 0 });
     game.apply("Ada", { type: "payRent" });
     expect(game.player(1).cash).toBe(1406); // 1500 - 100 + 6
