@@ -5,6 +5,7 @@ import { BOARD, spaceColor } from "@game/board";
 import Modal from "@/components/ui/Modal";
 import { GhostButton, PrimaryButton } from "@/components/ui/Buttons";
 import { COLOR, GRADIENT } from "@/components/ui/theme";
+import { tradeRuleText } from "./tradeControls";
 
 function TradeSide({ label, props, cash, accent }: { label: string; props: number[]; cash: number; accent: string }) {
   return (
@@ -44,6 +45,9 @@ export default function IncomingTradeModal({
   const myCash = state.players[myIndex]?.cash ?? 0;
   // From the recipient's view: they GIVE what was requested, GET what was offered.
   const cannotAfford = myCash < trade.requestCash;
+  const fromName = proposer?.name ?? "They";
+  const toName = state.players[trade.to]?.name ?? "You";
+  const rules = trade.rules ?? [];
 
   return (
     <Modal accent={COLOR.purple} width={460} zIndex={75} cardStyleOverride={{ padding: 22, borderRadius: 16 }}>
@@ -55,6 +59,32 @@ export default function IncomingTradeModal({
         <TradeSide label="You give" props={trade.requestProps} cash={trade.requestCash} accent={COLOR.rose} />
         <TradeSide label="You get" props={trade.offerProps} cash={trade.offerCash} accent={COLOR.green} />
       </div>
+      {rules.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: COLOR.purple, marginBottom: 8 }}>
+            Rent clauses
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {rules.map((rule, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#f6efdd",
+                  border: "1px solid rgba(0,0,0,.15)",
+                  borderLeft: `5px solid ${COLOR.purple}`,
+                  borderRadius: 7,
+                  padding: "6px 9px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: COLOR.text,
+                }}
+              >
+                {tradeRuleText(rule, fromName, toName)}.
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {cannotAfford && (
         <div style={{ marginTop: 14, fontSize: 12, fontWeight: 600, color: COLOR.rose }}>
           You only have ${myCash} — not enough cash for this trade.

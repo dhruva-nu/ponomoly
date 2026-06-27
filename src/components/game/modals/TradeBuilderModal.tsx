@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import type { ClientAction, GameState } from "@game/types";
+import type { ClientAction, GameState, TradeRentRule } from "@game/types";
 import Modal from "@/components/ui/Modal";
 import { PrimaryButton } from "@/components/ui/Buttons";
 import { COLOR, GRADIENT, chipButtonStyle } from "@/components/ui/theme";
-import { CashField, PropPickRow } from "./tradeControls";
+import { CashField, PropPickRow, RentRuleRow } from "./tradeControls";
+
+const newRule = (): TradeRentRule => ({ beneficiary: "from", mode: "waive", value: 0, turns: 3, scope: { kind: "all" } });
 
 const clampCash = (value: number, max: number) => Math.max(0, Math.min(max, Math.round(value) || 0));
 const colHead: CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 };
@@ -29,12 +31,14 @@ export default function TradeBuilderModal({
   const [requestProps, setRequestProps] = useState<number[]>([]);
   const [offerCash, setOfferCash] = useState(0);
   const [requestCash, setRequestCash] = useState(0);
+  const [rules, setRules] = useState<TradeRentRule[]>([]);
 
   const tradable = (playerIdx: number) => (state.players[playerIdx]?.properties ?? []).filter((p) => (state.buildings[p] || 0) === 0);
   const myProps = tradable(myIndex);
   const theirProps = target != null ? tradable(target) : [];
   const them = target != null ? state.players[target] : null;
-  const isValid = target != null && offerProps.length + requestProps.length + offerCash + requestCash > 0;
+  const themName = them?.name ?? "They";
+  const isValid = target != null && offerProps.length + requestProps.length + offerCash + requestCash + rules.length > 0;
 
   const toggle = (list: number[], set: (next: number[]) => void, value: number) =>
     set(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
@@ -45,9 +49,12 @@ export default function TradeBuilderModal({
     setRequestCash(0);
   };
 
+  const updateRule = (i: number, next: TradeRentRule) => setRules(rules.map((r, idx) => (idx === i ? next : r)));
+  const removeRule = (i: number) => setRules(rules.filter((_, idx) => idx !== i));
+
   const propose = () => {
     if (target == null || !isValid) return;
-    send({ type: "proposeTrade", to: target, offerProps, requestProps, offerCash, requestCash });
+    send({ type: "proposeTrade", to: target, offerProps, requestProps, offerCash, requestCash, rules });
     onClose();
   };
 
@@ -91,6 +98,39 @@ export default function TradeBuilderModal({
                 {theirProps.map((p) => <PropPickRow key={p} spaceIndex={p} selected={requestProps.includes(p)} onToggle={() => toggle(requestProps, setRequestProps, p)} />)}
               </div>
               <CashField label="Cash you get" value={requestCash} onChange={(v) => setRequestCash(clampCash(v, them?.cash ?? 0))} accent={COLOR.green} />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ ...colHead, color: COLOR.purple, marginBottom: 0 }}>Custom rent clauses</div>
+              <button
+                onClick={() => setRules([...rules, newRule()])}
+                style={{ ...chipButtonStyle(COLOR.purple), padding: "4px 10px", fontSize: 11 }}
+              >
+                + Add clause
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: COLOR.dim, marginBottom: 8 }}>
+              Temporarily reduce the rent one side owes the other (e.g. no rent for 5 turns, or 50% off).
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {rules.map((rule, i) => {
+                // The landlord whose properties the clause scopes over is the
+                // party NOT benefiting from the discount.
+                const payeeIdx = rule.beneficiary === "from" ? target : myIndex;
+                const payeeProps = payeeIdx != null ? state.players[payeeIdx]?.properties ?? [] : [];
+                return (
+                  <RentRuleRow
+                    key={i}
+                    rule={rule}
+                    themName={themName}
+                    payeeProps={payeeProps}
+                    onChange={(next) => updateRule(i, next)}
+                    onRemove={() => removeRule(i)}
+                  />
+                );
+              })}
             </div>
           </div>
 

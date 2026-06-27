@@ -1,5 +1,5 @@
 // Messages exchanged over the wire between client and the authoritative server.
-import type { GameState, Phase } from "./types";
+import type { GameState, Phase, TradeRentRule } from "./types";
 
 export type ClientAction =
   | { type: "join"; name: string }
@@ -26,6 +26,7 @@ export type ClientAction =
       requestProps: number[];
       offerCash: number;
       requestCash: number;
+      rules?: TradeRentRule[];
     }
   | { type: "respondTrade"; accept: boolean }
   | { type: "cancelTrade" }

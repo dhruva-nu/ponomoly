@@ -14,6 +14,7 @@ export function createInitialState(hostId: string | null = null): GameState {
     pendingBuy: null,
     pendingRent: null,
     pendingTrade: null,
+    rentAgreements: [],
     pendingAuction: null,
     auctionQueue: [],
     doublesStreak: 0,
@@ -32,6 +33,10 @@ export function normalizeState(state: GameState): GameState {
   if (!state.buildings) state.buildings = {};
   if (!state.mortgaged) state.mortgaged = {};
   if (state.pendingTrade === undefined) state.pendingTrade = null;
+  if (state.pendingTrade && !state.pendingTrade.rules) state.pendingTrade.rules = [];
+  for (const rule of state.pendingTrade?.rules ?? []) if (!rule.scope) rule.scope = { kind: "all" };
+  if (!state.rentAgreements) state.rentAgreements = [];
+  for (const agreement of state.rentAgreements) if (!agreement.scope) agreement.scope = { kind: "all" };
   if (state.pendingAuction === undefined) state.pendingAuction = null;
   if (!state.auctionQueue) state.auctionQueue = [];
   if (typeof state.doublesStreak !== "number") state.doublesStreak = 0;
