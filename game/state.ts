@@ -36,6 +36,7 @@ export function normalizeState(state: GameState): GameState {
   for (const player of state.players) {
     if (typeof player.jailed !== "boolean") player.jailed = false;
     if (typeof player.jailTurns !== "number") player.jailTurns = 0;
+    if (typeof player.jailCards !== "number") player.jailCards = 0;
   }
   return state;
 }

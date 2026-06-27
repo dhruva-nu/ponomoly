@@ -5,6 +5,7 @@ import { defaultRandomSource, type RandomSource } from "./rng";
 import type { ActionContext, HandlerError } from "./actions/context";
 import { handleCycleToken, handleJoin, handleReset, handleSetName, handleStart } from "./actions/lobby";
 import { handleBuy, handleEndTurn, handlePass, handleRoll, handleSurrender } from "./actions/turn";
+import { handlePayJailFine, handleUseJailCard } from "./actions/jail";
 import { handleAuctionPass, handleBid, handleTickAuction } from "./actions/auction";
 import { handleNegotiateRent, handlePayRent, handleRequestNegotiate } from "./actions/rent";
 import { handleBuild, handleMortgage, handleSellHouse, handleUnmortgage } from "./actions/assets";
@@ -31,6 +32,8 @@ function route(ctx: ActionContext, action: ClientAction): HandlerError {
     case "auctionPass": return handleAuctionPass(ctx);
     case "tickAuction": return handleTickAuction(ctx);
     case "surrender": return handleSurrender(ctx);
+    case "payJailFine": return handlePayJailFine(ctx);
+    case "useJailCard": return handleUseJailCard(ctx);
     case "payRent": return handlePayRent(ctx);
     case "requestNegotiate": return handleRequestNegotiate(ctx);
     case "negotiateRent": return handleNegotiateRent(ctx, action);

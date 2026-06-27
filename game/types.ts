@@ -43,6 +43,8 @@ export interface Player {
   jailed: boolean;
   /** failed escape attempts taken so far this Jail stint */
   jailTurns: number;
+  /** unused Get Out of Jail Free cards the player is holding */
+  jailCards: number;
 }
 
 export type Phase = "lobby" | "playing" | "ended";

@@ -97,3 +97,51 @@ describe("escaping jail", () => {
     expect(game.player(0).bankrupt).toBe(true);
   });
 });
+
+describe("paying the fine early", () => {
+  it("releases the player, who then rolls and moves normally", () => {
+    const game = startedGame(["Ada", "Bo"]);
+    jail(game, 0);
+    const cashBefore = game.player(0).cash;
+    expect(game.apply("Ada", { type: "payJailFine" }).error).toBeUndefined();
+    expect(game.player(0).jailed).toBe(false);
+    expect(game.player(0).cash).toBe(cashBefore - JAIL_FINE);
+    expect(game.player(0).position).toBe(JAIL_INDEX); // not moved until they roll
+
+    game.rigRoll("Ada", 2, 4); // now a normal (non-doubles) move
+    expect(game.player(0).position).toBe(JAIL_INDEX + 6);
+  });
+
+  it("rejects paying when not jailed, after rolling, or when broke", () => {
+    const game = startedGame(["Ada", "Bo"]);
+    expect(game.apply("Ada", { type: "payJailFine" }).error).toBe("You're not in Jail.");
+
+    jail(game, 0);
+    game.admin({ kind: "setCash", target: 0, amount: JAIL_FINE - 1 });
+    expect(game.apply("Ada", { type: "payJailFine" }).error).toBe("Not enough cash to pay the fine.");
+    expect(game.apply("Bo", { type: "payJailFine" }).error).toBe("Not your turn.");
+  });
+});
+
+describe("using a Get Out of Jail Free card", () => {
+  it("spends a card to leave Jail, then rolls and moves normally", () => {
+    const game = startedGame(["Ada", "Bo"]);
+    jail(game, 0);
+    const next = structuredClone(game.state);
+    next.players[0].jailCards = 1;
+    game.admin({ kind: "replaceState", state: next });
+
+    expect(game.apply("Ada", { type: "useJailCard" }).error).toBeUndefined();
+    expect(game.player(0).jailed).toBe(false);
+    expect(game.player(0).jailCards).toBe(0);
+
+    game.rigRoll("Ada", 2, 4);
+    expect(game.player(0).position).toBe(JAIL_INDEX + 6);
+  });
+
+  it("rejects using a card the player does not hold", () => {
+    const game = startedGame(["Ada", "Bo"]);
+    jail(game, 0);
+    expect(game.apply("Ada", { type: "useJailCard" }).error).toBe("No Get Out of Jail Free card to use.");
+  });
+});
