@@ -56,6 +56,8 @@ export interface GameState {
   turn: number;
   /** space index -> owning player index */
   owners: Record<number, number>;
+  /** space index -> building level (1-4 = houses, 5 = hotel); absent/0 = none */
+  buildings: Record<number, number>;
   dice: Dice;
   /** space index awaiting a buy/pass decision by the current player, else null */
   pendingBuy: number | null;
@@ -94,6 +96,7 @@ export type ClientAction =
   | { type: "payRent" }
   | { type: "requestNegotiate" }
   | { type: "negotiateRent"; amount: number }
+  | { type: "build"; pos: number }
   | { type: "endTurn" }
   | { type: "reset" }
   | { type: "admin"; password: string; cmd: AdminCmd };
@@ -107,6 +110,7 @@ export type AdminCmd =
   | { kind: "movePlayer"; target: number; position: number }
   | { kind: "setTurn"; turn: number }
   | { kind: "setOwner"; pos: number; owner: number | null }
+  | { kind: "setBuildings"; pos: number; level: number }
   | { kind: "kick"; target: number }
   | { kind: "setPhase"; phase: Phase }
   | { kind: "replaceState"; state: GameState };

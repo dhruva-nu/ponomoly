@@ -14,7 +14,11 @@ export default class PonomolyServer implements Party.Server {
   async onStart() {
     // Restore state across hibernation if the room slept.
     const saved = await this.room.storage.get<GameState>(STORAGE_KEY);
-    if (saved) this.state = saved;
+    if (saved) {
+      // Backfill fields added after this room was last persisted.
+      if (!saved.buildings) saved.buildings = {};
+      this.state = saved;
+    }
   }
 
   private async save() {

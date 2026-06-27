@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ClientAction, GameState } from "@game/types";
-import { BOARD, spaceColor } from "@game/board";
+import { BOARD, spaceColor, colorGroup, houseCost } from "@game/board";
 import Board from "./Board";
 
 const PIP_MAP: Record<number, number[]> = {
@@ -59,6 +59,7 @@ export default function Game({
 }) {
   const [rolling, setRolling] = useState(false);
   const [rentMinimized, setRentMinimized] = useState(false);
+  const [buildConfirm, setBuildConfirm] = useState<number | null>(null);
   const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const myIndex = state.players.findIndex((p) => p.id === you);
@@ -234,26 +235,16 @@ export default function Game({
             {portfolio?.name} · Portfolio
           </div>
           {portfolio && portfolio.properties.length > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {portfolio.properties.map((idx) => (
-                <div
+                <PropertyChip
                   key={idx}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    background: "rgba(8,14,28,.8)",
-                    border: "1px solid rgba(120,180,255,.18)",
-                    borderLeft: `5px solid ${spaceColor(idx)}`,
-                    borderRadius: 7,
-                    padding: "5px 9px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#dce6fb",
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  {BOARD[idx].name}
-                </div>
+                  idx={idx}
+                  state={state}
+                  ownerIdx={portfolioIdx}
+                  canBuild={isMyTurn && !isSpectator}
+                  onBuild={setBuildConfirm}
+                />
               ))}
             </div>
           ) : (
@@ -339,6 +330,232 @@ export default function Game({
           tenantName={state.players[state.pendingRent.payer]?.name ?? "the tenant"}
           send={send}
         />
+      )}
+
+      {/* Build confirmation */}
+      {buildConfirm !== null && (
+        <BuildConfirmModal
+          idx={buildConfirm}
+          level={state.buildings[buildConfirm] || 0}
+          cash={state.players[myIndex]?.cash ?? 0}
+          onConfirm={() => {
+            send({ type: "build", pos: buildConfirm });
+            setBuildConfirm(null);
+          }}
+          onCancel={() => setBuildConfirm(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function BuildConfirmModal({
+  idx,
+  level,
+  cash,
+  onConfirm,
+  onCancel,
+}: {
+  idx: number;
+  level: number;
+  cash: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const sp = BOARD[idx];
+  const col = spaceColor(idx);
+  const cost = houseCost(idx);
+  const isHotel = level === 4;
+  const what = isHotel ? "a Hotel" : `House #${level + 1}`;
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(4,7,14,.74)",
+        backdropFilter: "blur(3px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 70,
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 300,
+          background: "linear-gradient(180deg, rgba(18,28,52,.96), rgba(9,14,28,.96))",
+          border: "1px solid rgba(43,217,160,.35)",
+          borderRadius: 14,
+          boxShadow: "0 0 50px rgba(43,217,160,.14),0 30px 70px rgba(0,0,0,.7)",
+          overflow: "hidden",
+          animation: "popIn .25s ease",
+        }}
+      >
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${col}, ${col}aa)`,
+            height: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `inset 0 0 40px rgba(0,0,0,.25), 0 0 24px ${col}55`,
+          }}
+        >
+          <span className="font-display" style={{ fontSize: 26 }}>{isHotel ? "🏨" : "🏠"}</span>
+        </div>
+        <div style={{ padding: "20px 20px 22px", textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: "#2bd9a0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 2 }}>
+            Confirm build
+          </div>
+          <div style={{ fontSize: 15, color: "#dce6fb", fontWeight: 500, marginTop: 8, lineHeight: 1.4 }}>
+            Build <strong style={{ color: "#eef4ff" }}>{what}</strong> on{" "}
+            <strong style={{ color: "#eef4ff" }}>{sp.name}</strong>?
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              margin: "16px 2px 4px",
+              borderTop: "1px solid rgba(120,180,255,.16)",
+              borderBottom: "1px solid rgba(120,180,255,.16)",
+              padding: "12px 2px",
+            }}
+          >
+            <div style={{ textAlign: "left" }}>
+              <div style={{ color: "#6f82a8", fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>Cost</div>
+              <div className="font-display" style={{ fontWeight: 700, fontSize: 18, color: "#2bd9a0" }}>${cost}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ color: "#6f82a8", fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>Cash after</div>
+              <div className="font-display" style={{ fontWeight: 700, fontSize: 18, color: "#eef4ff" }}>${cash - cost}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+            <button
+              onClick={onCancel}
+              style={{
+                flex: 1,
+                border: "1px solid rgba(120,180,255,.3)",
+                background: "transparent",
+                color: "#9fb4d8",
+                fontWeight: 700,
+                fontSize: 12,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+                padding: 12,
+                borderRadius: 9,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              style={{
+                flex: 1,
+                border: "none",
+                background: "linear-gradient(135deg,#2bd9a0,#36e0ff)",
+                color: "#04121f",
+                fontWeight: 700,
+                fontSize: 12,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                padding: 12,
+                borderRadius: 9,
+                cursor: "pointer",
+                boxShadow: "0 0 18px rgba(43,217,160,.4)",
+              }}
+            >
+              Build ${cost}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PropertyChip({
+  idx,
+  state,
+  ownerIdx,
+  canBuild,
+  onBuild,
+}: {
+  idx: number;
+  state: GameState;
+  ownerIdx: number;
+  canBuild: boolean;
+  onBuild: (pos: number) => void;
+}) {
+  const sp = BOARD[idx];
+  const col = spaceColor(idx);
+  const isProp = sp.t === "prop";
+  const level = state.buildings[idx] || 0;
+  const group = isProp ? colorGroup(idx) : [];
+  const monopoly = isProp && group.length > 0 && group.every((g) => state.owners[g] === ownerIdx);
+  const minLevel = monopoly ? Math.min(...group.map((g) => state.buildings[g] || 0)) : 0;
+  const cost = houseCost(idx);
+  const me = state.players[ownerIdx];
+  const nextIsHotel = level === 4;
+  const buildable =
+    canBuild && isProp && monopoly && level < 5 && level <= minLevel && (me?.cash ?? 0) >= cost;
+  const houseBadge = level === 0 ? "" : level === 5 ? "🏨" : "🏠".repeat(level);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        background: "rgba(8,14,28,.8)",
+        border: "1px solid rgba(120,180,255,.18)",
+        borderLeft: `5px solid ${col}`,
+        borderRadius: 7,
+        padding: "5px 9px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#dce6fb",
+            letterSpacing: 0.3,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {sp.name}
+        </span>
+        {houseBadge && <span style={{ fontSize: 11, flexShrink: 0 }}>{houseBadge}</span>}
+      </div>
+      {buildable && (
+        <button
+          onClick={() => onBuild(idx)}
+          title={`Build ${nextIsHotel ? "hotel" : "house"} for $${cost}`}
+          style={{
+            flexShrink: 0,
+            border: "1px solid rgba(43,217,160,.5)",
+            background: "rgba(43,217,160,.14)",
+            color: "#2bd9a0",
+            fontWeight: 700,
+            fontSize: 11,
+            letterSpacing: 0.4,
+            padding: "3px 8px",
+            borderRadius: 6,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          +{nextIsHotel ? "🏨" : "🏠"} ${cost}
+        </button>
       )}
     </div>
   );

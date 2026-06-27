@@ -112,6 +112,11 @@ export default function Board({ state }: { state: GameState }) {
                   }}
                 />
               )}
+              {sp.t === "prop" && (state.buildings[sp.idx] || 0) > 0 && (
+                <div style={{ fontSize: 11, lineHeight: 1, letterSpacing: -1, marginBottom: 2 }}>
+                  {(state.buildings[sp.idx] || 0) === 5 ? "🏨" : "🏠".repeat(state.buildings[sp.idx] || 0)}
+                </div>
+              )}
               {sp.icon && (
                 <div
                   style={{
@@ -397,6 +402,15 @@ function PropertyTip({ idx, x, y, state }: { idx: number; x: number; y: number; 
   const owner = state.owners[idx];
   const ownerName =
     owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].name : null;
+  const level = state.buildings[idx] || 0;
+  const buildLabel =
+    sp.t === "prop"
+      ? level === 0
+        ? "Unimproved"
+        : level === 5
+        ? "Hotel"
+        : `${level} House${level > 1 ? "s" : ""}`
+      : null;
 
   const W = 232;
   const vw = typeof window !== "undefined" ? window.innerWidth : 1920;
@@ -470,12 +484,17 @@ function PropertyTip({ idx, x, y, state }: { idx: number; x: number; y: number; 
             marginTop: 10,
             paddingTop: 8,
             borderTop: "1px solid rgba(120,180,255,.16)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             fontSize: 11,
             fontWeight: 600,
-            color: ownerName ? "#ff8090" : "#2bd9a0",
           }}
         >
-          {ownerName ? `Owned by ${ownerName}` : "Unowned"}
+          <span style={{ color: ownerName ? "#ff8090" : "#2bd9a0" }}>
+            {ownerName ? `Owned by ${ownerName}` : "Unowned"}
+          </span>
+          {buildLabel && <span style={{ color: "#ffb84d" }}>{buildLabel}</span>}
         </div>
       </div>
     </div>

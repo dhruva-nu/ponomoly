@@ -1,4 +1,4 @@
-import { BOARD, COLORS, TOKENS, RENT_MULT, isOwnable, MIN_PLAYERS, MAX_PLAYERS } from "./board";
+import { BOARD, COLORS, TOKENS, RENT_MULT, isOwnable, colorGroup, houseCost, MIN_PLAYERS, MAX_PLAYERS } from "./board";
 import type { AdminCmd, ClientAction, GameState, Player } from "./types";
 
 export const STARTING_CASH = 1500;
@@ -18,6 +18,7 @@ export function createInitialState(hostId: string | null = null): GameState {
     players: [],
     turn: 0,
     owners: {},
+    buildings: {},
     dice: { d1: 1, d2: 1, rolled: false },
     pendingBuy: null,
     pendingRent: null,
@@ -46,10 +47,19 @@ export function rentFor(
   pos: number,
   owners: Record<number, number>,
   diceTotal: number,
+  buildings: Record<number, number> = {},
 ): number {
   const sp = BOARD[pos];
   const owner = owners[pos];
-  if (sp.t === "prop") return (sp.rent || 0) * RENT_MULT[0];
+  if (sp.t === "prop") {
+    const base = sp.rent || 0;
+    const level = buildings[pos] || 0;
+    if (level > 0) return base * (RENT_MULT[level] ?? 1);
+    // Unimproved: rent doubles when the owner holds the whole color group.
+    const group = colorGroup(pos);
+    const monopoly = group.length > 0 && group.every((g) => owners[g] === owner);
+    return base * (monopoly ? 2 : 1);
+  }
   if (sp.t === "rail") {
     let n = 0;
     for (const k in owners) if (owners[k] === owner && BOARD[+k].t === "rail") n++;
@@ -104,7 +114,7 @@ function resolveLanding(state: GameState) {
       state.pendingBuy = pos;
       pushLog(state, `${p.name} landed on ${sp.name}.`);
     } else if (owner !== turn) {
-      const rent = rentFor(pos, state.owners, state.dice.d1 + state.dice.d2);
+      const rent = rentFor(pos, state.owners, state.dice.d1 + state.dice.d2, state.buildings);
       state.pendingRent = { pos, amount: rent, original: rent, to: owner, payer: turn, negotiating: false };
       pushLog(state, `${p.name} owes $${rent} rent to ${state.players[owner].name}.`);
     } else {
@@ -140,7 +150,10 @@ function settleDebt(state: GameState, idx: number) {
   const p = state.players[idx];
   if (p.cash >= 0 || p.bankrupt) return;
   p.bankrupt = true;
-  for (const k of p.properties) delete state.owners[k];
+  for (const k of p.properties) {
+    delete state.owners[k];
+    delete state.buildings[k];
+  }
   p.properties = [];
   pushLog(state, `${p.name} went bankrupt and is out.`);
 }
@@ -157,6 +170,7 @@ export function applyAction(
 ): { state: GameState; error?: string } {
   // Work on a structured clone so callers can treat this as pure.
   const state: GameState = structuredClone(prev);
+  if (!state.buildings) state.buildings = {};
   const idx = playerIndex(state, id);
 
   switch (action.type) {
@@ -211,6 +225,7 @@ export function applyAction(
       state.phase = "playing";
       state.turn = 0;
       state.owners = {};
+      state.buildings = {};
       state.pendingBuy = null;
       state.pendingRent = null;
       state.dice = { d1: 1, d2: 1, rolled: false };
@@ -318,6 +333,31 @@ export function applyAction(
       return { state };
     }
 
+    case "build": {
+      if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
+      if (idx !== state.turn) return { state: prev, error: "Not your turn." };
+      const pos = action.pos;
+      const sp = BOARD[pos];
+      if (!sp || sp.t !== "prop") return { state: prev, error: "You can only build on properties." };
+      if (state.owners[pos] !== idx) return { state: prev, error: "You don't own that property." };
+      const group = colorGroup(pos);
+      if (!group.every((g) => state.owners[g] === idx)) {
+        return { state: prev, error: "You must own the whole color set to build." };
+      }
+      const level = state.buildings[pos] || 0;
+      if (level >= 5) return { state: prev, error: "That property already has a hotel." };
+      const minLevel = Math.min(...group.map((g) => state.buildings[g] || 0));
+      if (level > minLevel) return { state: prev, error: "Build evenly across the color set first." };
+      const cost = houseCost(pos);
+      const p = state.players[idx];
+      if (p.cash < cost) return { state: prev, error: "Not enough cash to build." };
+      p.cash -= cost;
+      state.buildings[pos] = level + 1;
+      const what = level + 1 === 5 ? "a hotel" : `house #${level + 1}`;
+      pushLog(state, `${p.name} built ${what} on ${sp.name} for $${cost}.`);
+      return { state };
+    }
+
     case "endTurn": {
       if (state.phase !== "playing") return { state: prev, error: "Game not in progress." };
       if (idx !== state.turn) return { state: prev, error: "Not your turn." };
@@ -397,6 +437,8 @@ function applyAdmin(state: GameState, cmd: AdminCmd): { state: GameState; error?
     }
     case "setOwner": {
       const pos = clampInt(cmd.pos, 0, 39, 0);
+      // Ownership change wipes any buildings on the space.
+      delete state.buildings[pos];
       // Remove from any current owner's list first.
       const prevOwner = state.owners[pos];
       if (prevOwner !== undefined && state.players[prevOwner]) {
@@ -416,11 +458,32 @@ function applyAdmin(state: GameState, cmd: AdminCmd): { state: GameState; error?
       }
       return { state };
     }
+    case "setBuildings": {
+      const pos = clampInt(cmd.pos, 0, 39, 0);
+      if (BOARD[pos].t !== "prop") return { state, error: "Not a buildable property." };
+      const level = clampInt(cmd.level, 0, 5, 0);
+      if (level === 0) {
+        delete state.buildings[pos];
+        pushLog(state, `[admin] Cleared buildings on ${BOARD[pos].name}.`);
+      } else {
+        state.buildings[pos] = level;
+        pushLog(
+          state,
+          level === 5
+            ? `[admin] Placed a hotel on ${BOARD[pos].name}.`
+            : `[admin] Set ${level} house${level > 1 ? "s" : ""} on ${BOARD[pos].name}.`,
+        );
+      }
+      return { state };
+    }
     case "kick": {
       if (!state.players[cmd.target]) return { state, error: "No such player." };
       const name = state.players[cmd.target].name;
       for (const k in state.owners) {
-        if (state.owners[k] === cmd.target) delete state.owners[+k];
+        if (state.owners[k] === cmd.target) {
+          delete state.owners[+k];
+          delete state.buildings[+k];
+        }
       }
       state.players.splice(cmd.target, 1);
       // Reindex owners that referenced players after the removed one.

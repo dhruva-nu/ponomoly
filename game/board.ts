@@ -99,3 +99,28 @@ export function spaceColor(idx: number): string {
 
 export const isOwnable = (t: string) =>
   t === "prop" || t === "rail" || t === "util";
+
+/** Cost to add one house/hotel, by color group (classic Monopoly scaling). */
+const HOUSE_COST: Record<string, number> = {
+  [C.brown]: 50,
+  [C.lblue]: 50,
+  [C.pink]: 100,
+  [C.orange]: 100,
+  [C.red]: 150,
+  [C.yellow]: 150,
+  [C.green]: 200,
+  [C.blue]: 200,
+};
+
+export function houseCost(idx: number): number {
+  const sp = BOARD[idx];
+  if (sp.t !== "prop") return 0;
+  return HOUSE_COST[sp.c!] ?? 100;
+}
+
+/** All board indices in the same color group as `idx` (properties only). */
+export function colorGroup(idx: number): number[] {
+  const sp = BOARD[idx];
+  if (sp.t !== "prop") return [];
+  return BOARD.filter((s) => s.t === "prop" && s.c === sp.c).map((s) => s.idx);
+}
