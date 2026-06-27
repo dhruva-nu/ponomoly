@@ -1,7 +1,7 @@
 "use client";
 
 import type { GameState, Player } from "@game/types";
-import { COLOR } from "@/components/ui/theme";
+import { COLOR, GRADIENT } from "@/components/ui/theme";
 import PropertyChip from "../PropertyChip";
 import type { ManageKind } from "../modals/ManageConfirmModal";
 
@@ -25,8 +25,8 @@ export default function Portfolio({
 }) {
   return (
     <div style={{
-      background: "linear-gradient(180deg, rgba(18,28,52,.7), rgba(10,16,32,.7))",
-      border: "1px solid rgba(120,180,255,.16)",
+      background: GRADIENT.panel,
+      border: "1px solid rgba(0,0,0,.15)",
       borderRadius: 12,
       padding: 14,
     }}>

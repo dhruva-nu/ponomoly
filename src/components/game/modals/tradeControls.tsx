@@ -22,8 +22,8 @@ export function PropPickRow({
         gap: 7,
         width: "100%",
         textAlign: "left",
-        background: selected ? "rgba(54,224,255,.16)" : "rgba(8,14,28,.7)",
-        border: `1px solid ${selected ? "rgba(54,224,255,.55)" : "rgba(120,180,255,.16)"}`,
+        background: selected ? `${COLOR.cyan}1f` : "#f6efdd",
+        border: `1px solid ${selected ? `${COLOR.cyan}55` : "rgba(0,0,0,.15)"}`,
         borderLeft: `5px solid ${spaceColor(spaceIndex)}`,
         borderRadius: 7,
         padding: "6px 9px",
@@ -62,8 +62,8 @@ export function CashField({
         onChange={(event) => onChange(Number(event.target.value))}
         style={{
           width: 80,
-          border: "1px solid rgba(120,180,255,.3)",
-          background: "rgba(6,10,20,.7)",
+          border: "1px solid rgba(0,0,0,.15)",
+          background: "#fbf7ea",
           borderRadius: 7,
           padding: "6px 8px",
           fontSize: 13,

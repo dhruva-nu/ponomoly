@@ -9,7 +9,7 @@ import PlayerSeat, { SEAT_SLOTS } from "./PlayerSeat";
 import PropertyTip from "./PropertyTip";
 
 const HOVER_DELAY = 1000; // ms before the info tooltip appears
-const FALLBACK_PLAYER: Player = { id: "", name: "", token: "", color: "#36e0ff", cash: 0, position: 0, properties: [], connected: true, bankrupt: false, jailed: false, jailTurns: 0, jailCards: 0 };
+const FALLBACK_PLAYER: Player = { id: "", name: "", token: "", color: "#c8202a", cash: 0, position: 0, properties: [], connected: true, bankrupt: false, jailed: false, jailTurns: 0, jailCards: 0 };
 
 interface Tooltip {
   spaceIndex: number;
@@ -43,9 +43,9 @@ export default function Board({ state, youIndex = -1 }: { state: GameState; youI
       <div style={{
         width: "min(88vh, 820px)", aspectRatio: "1", display: "grid",
         gridTemplateColumns: "repeat(11,1fr)", gridTemplateRows: "repeat(11,1fr)", gap: 2,
-        background: "radial-gradient(circle at 50% 50%, rgba(54,224,255,.06), transparent 70%), #0a1430",
-        border: "1px solid rgba(54,224,255,.28)", borderRadius: 10, padding: 9,
-        boxShadow: "0 0 70px rgba(54,224,255,.12), 0 40px 70px rgba(0,0,0,.7)",
+        background: "radial-gradient(circle at 50% 50%, #d3e7d3, #c3dcc2 70%)",
+        border: "3px solid #14622f", borderRadius: 10, padding: 9,
+        boxShadow: "0 0 0 1px rgba(0,0,0,.2), 0 40px 70px rgba(0,0,0,.45)",
         transform: "perspective(1500px) rotateX(34deg)", transformStyle: "preserve-3d", flexShrink: 0,
       }}>
         {BOARD.map((space) => (

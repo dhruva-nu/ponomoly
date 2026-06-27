@@ -59,21 +59,21 @@ function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => void }) {
         width: "100%",
         maxWidth: 420,
         background: GRADIENT.panel,
-        border: "1px solid rgba(120,180,255,.22)",
+        border: "1px solid rgba(0,0,0,.15)",
         borderRadius: 16,
-        boxShadow: "0 0 60px rgba(54,224,255,.1),0 30px 70px rgba(0,0,0,.6)",
+        boxShadow: "0 12px 30px rgba(34,24,8,.3)",
         padding: "38px 34px 32px",
         animation: "popIn .3s ease",
         marginTop: "12vh",
       }}
     >
-      <div style={{ textAlign: "center", borderBottom: "1px solid rgba(120,180,255,.16)", paddingBottom: 22 }}>
+      <div style={{ textAlign: "center", borderBottom: "1px solid rgba(0,0,0,.15)", paddingBottom: 22 }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", color: COLOR.gold }}>
           Restricted
         </div>
         <div
           className="font-display"
-          style={{ fontWeight: 800, fontSize: 28, letterSpacing: 1, marginTop: 10, color: COLOR.ink, textShadow: "0 0 20px rgba(255,210,60,.4)" }}
+          style={{ fontWeight: 800, fontSize: 28, letterSpacing: 1, marginTop: 10, color: COLOR.ink, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}
         >
           ROOM CONTROL
         </div>
@@ -90,8 +90,8 @@ function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => void }) {
           placeholder="Admin password"
           style={{
             width: "100%",
-            border: `1px solid ${error ? COLOR.red : "rgba(120,180,255,.3)"}`,
-            background: "rgba(6,10,20,.7)",
+            border: `1px solid ${error ? COLOR.red : "rgba(0,0,0,.2)"}`,
+            background: "#fffdf4",
             borderRadius: 10,
             padding: "13px 16px",
             fontSize: 16,
@@ -111,7 +111,7 @@ function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => void }) {
           width: "100%",
           marginTop: 12,
           border: "none",
-          background: pw && !checking ? GRADIENT.primary : "rgba(20,30,54,.6)",
+          background: pw && !checking ? GRADIENT.primary : "rgba(0,0,0,.06)",
           color: pw && !checking ? COLOR.abyss : COLOR.dim,
           fontFamily: "var(--font-orbitron), sans-serif",
           fontWeight: 700,
@@ -121,7 +121,7 @@ function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => void }) {
           padding: 15,
           borderRadius: 11,
           cursor: pw && !checking ? "pointer" : "default",
-          boxShadow: pw && !checking ? "0 0 24px rgba(54,224,255,.4)" : "none",
+          boxShadow: pw && !checking ? "0 6px 18px rgba(34,24,8,.18)" : "none",
         }}
       >
         {checking ? "Verifying…" : "Unlock ▸"}
@@ -178,7 +178,7 @@ function Console({ password, onLogout }: { password: string; onLogout: () => voi
     <div style={{ position: "relative", width: "100%", maxWidth: 860, marginTop: "6vh" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div className="font-display" style={{ fontWeight: 800, fontSize: 26, letterSpacing: 1, color: COLOR.ink, textShadow: "0 0 20px rgba(54,224,255,.4)" }}>
+          <div className="font-display" style={{ fontWeight: 800, fontSize: 26, letterSpacing: 1, color: COLOR.ink, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}>
             ROOM CONTROL
           </div>
           <div style={{ fontSize: 13, color: COLOR.dim, marginTop: 4 }}>
@@ -192,13 +192,13 @@ function Console({ password, onLogout }: { password: string; onLogout: () => voi
       </div>
 
       {error && (
-        <div style={{ background: "rgba(255,90,110,.12)", border: "1px solid rgba(255,90,110,.4)", color: COLOR.rose, padding: "10px 14px", borderRadius: 10, fontWeight: 600, marginBottom: 16 }}>
+        <div style={{ background: "rgba(200,32,42,.12)", border: "1px solid rgba(200,32,42,.5)", color: "#a01821", padding: "10px 14px", borderRadius: 10, fontWeight: 600, marginBottom: 16 }}>
           {error}
         </div>
       )}
 
       {!loading && rooms.length === 0 && !error && (
-        <div style={{ textAlign: "center", color: COLOR.dim, padding: "60px 20px", background: GRADIENT.panel, border: "1px solid rgba(120,180,255,.16)", borderRadius: 14 }}>
+        <div style={{ textAlign: "center", color: COLOR.dim, padding: "60px 20px", background: GRADIENT.panel, border: "1px solid rgba(0,0,0,.15)", borderRadius: 14 }}>
           No active rooms right now.
         </div>
       )}
@@ -223,7 +223,7 @@ function RoomRow({ room, busy, onDelete }: { room: RoomSummary; busy: boolean; o
         alignItems: "center",
         gap: 16,
         background: GRADIENT.panel,
-        border: "1px solid rgba(120,180,255,.18)",
+        border: "1px solid rgba(0,0,0,.15)",
         borderRadius: 14,
         padding: "16px 18px",
         flexWrap: "wrap",
@@ -253,8 +253,8 @@ function RoomRow({ room, busy, onDelete }: { room: RoomSummary; busy: boolean; o
                 fontWeight: 600,
                 padding: "3px 9px",
                 borderRadius: 7,
-                border: `1px solid ${p.connected ? "rgba(43,217,160,.4)" : "rgba(120,180,255,.2)"}`,
-                background: p.connected ? "rgba(43,217,160,.1)" : "rgba(120,180,255,.05)",
+                border: `1px solid ${p.connected ? `${COLOR.green}66` : "rgba(0,0,0,.15)"}`,
+                background: p.connected ? `${COLOR.green}1a` : "rgba(0,0,0,.04)",
                 color: p.connected ? COLOR.green : COLOR.dim,
               }}
             >

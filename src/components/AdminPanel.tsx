@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { AdminCmd, ClientAction, GameState } from "@game/types";
 import { ADMIN_PASSWORD } from "@game/logic";
 import Modal from "@/components/ui/Modal";
+import { COLOR } from "@/components/ui/theme";
 import { field, panelButton } from "./admin/adminStyles";
 import RiggedDice from "./admin/RiggedDice";
 import PlayersSection from "./admin/PlayersSection";
@@ -41,15 +42,15 @@ export default function AdminPanel({
   };
 
   return (
-    <Modal accent="#ffd23c" width={460} zIndex={80} onDismiss={onClose} cardStyleOverride={{ maxHeight: "90vh", overflowY: "auto", padding: 22, borderRadius: 16 }}>
+    <Modal accent={COLOR.gold} width={460} zIndex={80} onDismiss={onClose} cardStyleOverride={{ maxHeight: "90vh", overflowY: "auto", padding: 22, borderRadius: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div className="font-display" style={{ fontWeight: 800, fontSize: 18, color: "#ffd23c", letterSpacing: 1 }}>⚑ ADMIN CONSOLE</div>
-        <button onClick={onClose} style={{ ...panelButton("#9fb4d8"), padding: "5px 10px" }}>Close ✕</button>
+        <div className="font-display" style={{ fontWeight: 800, fontSize: 18, color: COLOR.red, letterSpacing: 1 }}>⚑ ADMIN CONSOLE</div>
+        <button onClick={onClose} style={{ ...panelButton(COLOR.muted), padding: "5px 10px" }}>Close ✕</button>
       </div>
 
       {!unlocked ? (
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 13, color: "#9fb4d8", marginBottom: 10 }}>Enter the admin password to alter this game.</div>
+          <div style={{ fontSize: 13, color: COLOR.muted, marginBottom: 10 }}>Enter the admin password to alter this game.</div>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               type="password"
@@ -60,7 +61,7 @@ export default function AdminPanel({
               placeholder="Password"
               style={{ ...field, width: "auto", flex: 1 }}
             />
-            <button onClick={unlock} style={panelButton("#ffd23c")}>Unlock</button>
+            <button onClick={unlock} style={panelButton(COLOR.gold)}>Unlock</button>
           </div>
         </div>
       ) : (

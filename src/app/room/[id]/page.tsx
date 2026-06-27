@@ -8,6 +8,7 @@ import Lobby from "@/components/Lobby";
 import Game from "@/components/Game";
 import NameGate from "@/components/NameGate";
 import AdminPanel from "@/components/AdminPanel";
+import { COLOR } from "@/components/ui/theme";
 
 export default function RoomPage() {
   const params = useParams<{ id: string }>();
@@ -52,14 +53,14 @@ export default function RoomPage() {
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 100,
-            background: "rgba(255,90,110,.14)",
-            border: "1px solid rgba(255,90,110,.5)",
-            color: "#ff8a98",
+            background: "rgba(200,32,42,.12)",
+            border: "1px solid rgba(200,32,42,.5)",
+            color: "#a01821",
             padding: "10px 18px",
             borderRadius: 10,
             fontWeight: 600,
             letterSpacing: 0.4,
-            boxShadow: "0 0 24px rgba(255,90,110,.25)",
+            boxShadow: "0 6px 18px rgba(34,24,8,.18)",
           }}
         >
           {error}
@@ -86,9 +87,9 @@ export default function RoomPage() {
             bottom: 16,
             right: 16,
             zIndex: 70,
-            border: "1px solid rgba(255,210,60,.45)",
-            background: "rgba(28,22,6,.7)",
-            color: "#ffd23c",
+            border: `1px solid ${COLOR.gold}88`,
+            background: "rgba(255,247,225,.92)",
+            color: "#9a6f12",
             fontWeight: 700,
             fontSize: 12,
             letterSpacing: 1,
@@ -96,7 +97,7 @@ export default function RoomPage() {
             padding: "9px 13px",
             borderRadius: 10,
             cursor: "pointer",
-            boxShadow: "0 0 18px rgba(255,210,60,.2)",
+            boxShadow: "0 6px 18px rgba(34,24,8,.18)",
             backdropFilter: "blur(4px)",
           }}
         >
@@ -112,11 +113,11 @@ export default function RoomPage() {
 
 function ConnectingCard({ roomId }: { roomId: string }) {
   return (
-    <div style={{ position: "relative", marginTop: "20vh", textAlign: "center", color: "#8295b8" }}>
-      <div className="font-display" style={{ fontSize: 22, color: "#36e0ff", letterSpacing: 2 }}>
-        CONNECTING…
+    <div style={{ position: "relative", marginTop: "20vh", textAlign: "center", color: COLOR.muted }}>
+      <div className="font-display" style={{ fontSize: 22, color: COLOR.red, letterSpacing: 2 }}>
+        Connecting…
       </div>
-      <div style={{ marginTop: 10, letterSpacing: 1 }}>Linking to grid {roomId}</div>
+      <div style={{ marginTop: 10, letterSpacing: 1 }}>Joining room {roomId}</div>
     </div>
   );
 }

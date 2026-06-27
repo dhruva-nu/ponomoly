@@ -1,41 +1,51 @@
 import type { CSSProperties } from "react";
 
-/** Named palette — the hex values that were previously repeated inline everywhere. */
+/**
+ * Classic Monopoly palette — warm cream "paper" cards on a green felt table,
+ * dark ink text, money-green / Monopoly-red / community-chest-gold accents.
+ *
+ * The KEYS below are kept stable (a lot of code imports `COLOR.cyan`, etc.);
+ * only the values have been retuned from the old neon scheme. A few keys are
+ * intentionally repurposed — see the comments:
+ *   - `cyan`  is now the primary money-green accent (CTAs, prices)
+ *   - `abyss` is now the cream "paper" tone, used as the text color on top of
+ *     filled colored buttons and as a light surface fill.
+ */
 export const COLOR = {
-  cyan: "#36e0ff",
-  blue: "#5a8cff",
-  green: "#2bd9a0",
-  red: "#ff5a6e",
-  rose: "#ff8090",
-  gold: "#ffd23c",
-  orange: "#ff8a3c",
-  purple: "#b06bff",
-  lavender: "#c9a4ff",
-  ink: "#eef4ff",
-  text: "#dce6fb",
-  muted: "#9fb4d8",
-  dim: "#5f7196",
-  slate: "#6f82a8",
-  abyss: "#04121f",
+  cyan: "#1f7a44", // primary accent — dollar-bill green
+  blue: "#1d63a8", // info / Monopoly dark-blue group
+  green: "#2e9e5b", // success / money
+  red: "#c8202a", // Monopoly red — danger + brand
+  rose: "#d2546a",
+  gold: "#d8a32a", // community-chest gold
+  orange: "#e07b25",
+  purple: "#7a4fb0", // trade
+  lavender: "#8a5fc8",
+  ink: "#1c1813", // darkest heading text (on cream)
+  text: "#2c241b", // body text
+  muted: "#7c7060", // secondary / muted text
+  dim: "#b3a892", // disabled text
+  slate: "#8a7d6a",
+  abyss: "#fbf7ec", // cream "paper" — text on filled buttons / light fills
 } as const;
 
 export const GRADIENT = {
-  primary: "linear-gradient(135deg,#36e0ff,#5a8cff)",
-  accept: "linear-gradient(135deg,#2bd9a0,#36e0ff)",
-  trade: "linear-gradient(135deg,#b06bff,#5a8cff)",
-  danger: "linear-gradient(135deg,#ff6a7e,#ff9a5a)",
-  card: "linear-gradient(180deg, rgba(18,28,52,.96), rgba(9,14,28,.96))",
-  panel: "linear-gradient(180deg, rgba(18,28,52,.92), rgba(10,16,32,.92))",
+  primary: "linear-gradient(135deg,#3aa85f,#1f7a44)",
+  accept: "linear-gradient(135deg,#3aa85f,#56c47e)",
+  trade: "linear-gradient(135deg,#8a5fc8,#5a7fd0)",
+  danger: "linear-gradient(135deg,#d8313f,#e07b25)",
+  card: "linear-gradient(180deg,#fdfaf0,#f4ecd6)",
+  panel: "linear-gradient(180deg,#fbf7ea,#f1e7cf)",
 } as const;
 
-const DISABLED_BG = "rgba(20,30,54,.6)";
+const DISABLED_BG = "rgba(0,0,0,.06)";
 
 /** Full-screen dim + blur backdrop that hosts a centered modal. */
 export function overlayStyle(zIndex: number): CSSProperties {
   return {
     position: "fixed",
     inset: 0,
-    background: "rgba(4,7,14,.74)",
+    background: "rgba(24,18,8,.55)",
     backdropFilter: "blur(3px)",
     display: "flex",
     alignItems: "center",
@@ -45,15 +55,15 @@ export function overlayStyle(zIndex: number): CSSProperties {
   };
 }
 
-/** The glassy gradient panel used by every modal, tinted by an accent color. */
+/** The cream "paper" card used by every modal, tinted by an accent color. */
 export function cardStyle(accent: string, width: number): CSSProperties {
   return {
     width,
     maxWidth: "96vw",
     background: GRADIENT.card,
-    border: `1px solid ${accent}59`,
+    border: `1px solid ${accent}55`,
     borderRadius: 14,
-    boxShadow: `0 0 50px ${accent}26,0 30px 70px rgba(0,0,0,.7)`,
+    boxShadow: `0 0 0 1px rgba(0,0,0,.05), 0 24px 60px rgba(34,24,8,.4)`,
     overflow: "hidden",
     animation: "popIn .25s ease",
   };
@@ -62,12 +72,12 @@ export function cardStyle(accent: string, width: number): CSSProperties {
 /** The colored header band (with a centered glyph) shown atop property modals. */
 export function headerStyle(color: string, height = 60): CSSProperties {
   return {
-    background: `linear-gradient(135deg, ${color}, ${color}aa)`,
+    background: `linear-gradient(135deg, ${color}, ${color}cc)`,
     height,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: `inset 0 0 40px rgba(0,0,0,.25), 0 0 24px ${color}55`,
+    boxShadow: `inset 0 -2px 0 rgba(0,0,0,.18), inset 0 0 30px rgba(0,0,0,.12)`,
   };
 }
 
@@ -85,7 +95,7 @@ export function solidButtonStyle(gradient: string, disabled = false): CSSPropert
     padding: 12,
     borderRadius: 9,
     cursor: disabled ? "default" : "pointer",
-    boxShadow: disabled ? "none" : `0 0 18px ${COLOR.cyan}4d`,
+    boxShadow: disabled ? "none" : `0 4px 12px rgba(34,24,8,.22)`,
   };
 }
 
@@ -93,9 +103,9 @@ export function solidButtonStyle(gradient: string, disabled = false): CSSPropert
 export function ghostButtonStyle(): CSSProperties {
   return {
     flex: 1,
-    border: "1px solid rgba(120,180,255,.3)",
+    border: "1px solid rgba(0,0,0,.2)",
     background: "transparent",
-    color: COLOR.muted,
+    color: COLOR.text,
     fontWeight: 700,
     fontSize: 12,
     letterSpacing: 1.5,
@@ -109,8 +119,8 @@ export function ghostButtonStyle(): CSSProperties {
 /** A compact accent-tinted button used in dense control clusters. */
 export function chipButtonStyle(color: string = COLOR.cyan): CSSProperties {
   return {
-    border: `1px solid ${color}80`,
-    background: `${color}14`,
+    border: `1px solid ${color}66`,
+    background: `${color}1a`,
     color,
     fontWeight: 700,
     fontSize: 11,

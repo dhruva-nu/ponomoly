@@ -47,11 +47,11 @@ export default function PropertyTip({
   return (
     <div style={{
       position: "fixed", left, top, width: TIP_WIDTH, zIndex: 80, pointerEvents: "none",
-      background: "linear-gradient(180deg, rgba(18,28,52,.98), rgba(8,13,28,.98))",
-      border: "1px solid rgba(120,180,255,.3)", borderRadius: 12,
-      boxShadow: "0 0 40px rgba(54,224,255,.16), 0 24px 50px rgba(0,0,0,.7)", overflow: "hidden", animation: "popIn .12s ease",
+      background: "linear-gradient(180deg, #fdfaf0, #f4ecd6)",
+      border: "1px solid rgba(0,0,0,.22)", borderRadius: 12,
+      boxShadow: "0 0 0 1px rgba(0,0,0,.05), 0 24px 50px rgba(34,24,8,.45)", overflow: "hidden", animation: "popIn .12s ease",
     }}>
-      <div style={{ height: 6, background: spaceColor(spaceIndex), boxShadow: `0 0 12px ${spaceColor(spaceIndex)}` }} />
+      <div style={{ height: 10, background: spaceColor(spaceIndex), borderBottom: "1px solid rgba(0,0,0,.4)" }} />
       <div style={{ padding: "12px 14px 14px" }}>
         <div className="font-display" style={{ fontWeight: 700, fontSize: 16, color: COLOR.ink, lineHeight: 1.1 }}>{space.name}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
@@ -63,7 +63,7 @@ export default function PropertyTip({
           <OwnedBanner mortgaged={mortgaged} youOwn={youOwn} dueNow={dueNow} isUtility={space.t === "util"} />
         )}
 
-        <div style={{ marginTop: 10, borderTop: "1px solid rgba(120,180,255,.16)", paddingTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ marginTop: 10, borderTop: "1px solid rgba(0,0,0,.14)", paddingTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
           {rentRows(spaceIndex).map((row) => (
             <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
               <span style={{ color: COLOR.muted, fontWeight: 500 }}>{row.label}</span>
@@ -72,9 +72,9 @@ export default function PropertyTip({
           ))}
         </div>
 
-        <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(120,180,255,.16)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 600 }}>
+        <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(0,0,0,.14)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 600 }}>
           <span style={{ color: ownerName ? COLOR.rose : COLOR.green }}>{ownerName ? `Owned by ${ownerName}` : "Unowned"}</span>
-          {label && <span style={{ color: "#ffb84d" }}>{label}</span>}
+          {label && <span style={{ color: "#c8202a" }}>{label}</span>}
         </div>
       </div>
     </div>

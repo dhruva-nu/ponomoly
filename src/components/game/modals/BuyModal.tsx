@@ -52,7 +52,7 @@ export default function BuyModal({
           {rentRows(spaceIndex).map((row) => (
             <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
               <span style={{ color: COLOR.muted, fontWeight: 500 }}>{row.label}</span>
-              <span className="font-display" style={{ color: row.hot ? "#ffb84d" : COLOR.text, fontWeight: 700, letterSpacing: 0.3 }}>
+              <span className="font-display" style={{ color: row.hot ? COLOR.gold : COLOR.text, fontWeight: 700, letterSpacing: 0.3 }}>
                 {row.value}
               </span>
             </div>

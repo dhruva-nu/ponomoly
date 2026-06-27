@@ -1,6 +1,7 @@
 "use client";
 
 import type { Phase } from "@game/types";
+import { COLOR } from "@/components/ui/theme";
 import { panelButton, sectionTitle, type RunAdmin } from "./adminStyles";
 
 const PHASES: Phase[] = ["lobby", "playing", "ended"];
@@ -15,7 +16,7 @@ export default function PhaseSection({ current, run }: { current: Phase; run: Ru
           <button
             key={phase}
             onClick={() => run({ kind: "setPhase", phase })}
-            style={{ ...panelButton(phase === current ? "#2bd9a0" : "#9fb4d8"), flex: 1 }}
+            style={{ ...panelButton(phase === current ? COLOR.green : COLOR.muted), flex: 1 }}
           >
             {phase}
           </button>

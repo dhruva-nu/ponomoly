@@ -54,7 +54,7 @@ export default function TradeBuilderModal({
   return (
     <Modal accent={COLOR.purple} width={540} zIndex={65} onDismiss={onClose} cardStyleOverride={{ maxHeight: "90vh", overflowY: "auto", padding: 22, borderRadius: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div className="font-display" style={{ fontWeight: 800, fontSize: 18, color: COLOR.lavender, letterSpacing: 1 }}>⇄ PROPOSE TRADE</div>
+        <div className="font-display" style={{ fontWeight: 800, fontSize: 18, color: COLOR.purple, letterSpacing: 1 }}>⇄ PROPOSE TRADE</div>
         <button onClick={onClose} style={{ ...chipButtonStyle(COLOR.muted), padding: "5px 10px" }}>Close ✕</button>
       </div>
 
@@ -66,7 +66,7 @@ export default function TradeBuilderModal({
             <span style={{ fontSize: 12, color: COLOR.muted, fontWeight: 600 }}>Trade with</span>
             {others.map(({ player, index }) => (
               <button key={player.id} onClick={() => pickTarget(index)} style={{
-                border: `1px solid ${target === index ? player.color : "rgba(120,180,255,.22)"}`,
+                border: `1px solid ${target === index ? player.color : "rgba(0,0,0,.15)"}`,
                 background: target === index ? `${player.color}22` : "transparent",
                 color: COLOR.ink, fontWeight: 700, fontSize: 12, padding: "5px 11px", borderRadius: 8, cursor: "pointer",
               }}>

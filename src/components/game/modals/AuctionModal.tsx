@@ -98,7 +98,7 @@ export default function AuctionModal({
           >
             {expired ? "Settling…" : `0:${String(seconds).padStart(2, "0")}`}
           </div>
-          <div style={{ marginTop: 8, height: 6, borderRadius: 99, background: "rgba(120,180,255,.14)", overflow: "hidden" }}>
+          <div style={{ marginTop: 8, height: 6, borderRadius: 99, background: "rgba(0,0,0,.08)", overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pctRemaining}%`, background: barColor, transition: "width .2s linear" }} />
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function AuctionModal({
                   padding: "8px 6px",
                   borderRadius: 10,
                   border: `1px solid ${COLOR.gold}59`,
-                  background: "rgba(8,14,28,.7)",
+                  background: "#f6efdd",
                   color: COLOR.ink,
                 }}
                 className="font-display"

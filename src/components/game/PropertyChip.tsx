@@ -70,12 +70,12 @@ export default function PropertyChip({
 
   return (
     <div style={{
-      background: mortgaged ? "rgba(20,12,12,.7)" : "rgba(8,14,28,.8)",
-      border: `1px solid ${open && hasActions ? "rgba(120,180,255,.4)" : "rgba(120,180,255,.18)"}`,
+      background: mortgaged ? "rgba(200,32,42,.08)" : "#f6efdd",
+      border: `1px solid ${open && hasActions ? "rgba(0,0,0,.25)" : "rgba(0,0,0,.12)"}`,
       borderRadius: 7, padding: "5px 9px", opacity: mortgaged ? 0.85 : 1,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-        <span style={{ width: 5, height: 16, borderRadius: 3, background: accentColor, flexShrink: 0, boxShadow: `0 0 7px ${accentColor}aa` }} />
+        <span style={{ width: 5, height: 16, borderRadius: 3, background: accentColor, flexShrink: 0, boxShadow: `0 1px 2px rgba(34,24,8,.25)` }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: COLOR.text, letterSpacing: 0.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
           {space.name}
         </span>
@@ -84,8 +84,8 @@ export default function PropertyChip({
         {hasActions && (
           <button onClick={() => setOpen((value) => !value)} title="Manage property" style={{
             flexShrink: 0, width: 24, height: 22, display: "flex", alignItems: "center", justifyContent: "center",
-            border: `1px solid ${open ? "rgba(120,180,255,.5)" : "rgba(120,180,255,.25)"}`,
-            background: open ? "rgba(120,180,255,.16)" : "transparent",
+            border: `1px solid ${open ? "rgba(0,0,0,.3)" : "rgba(0,0,0,.15)"}`,
+            background: open ? "rgba(0,0,0,.06)" : "transparent",
             color: COLOR.muted, fontSize: 15, fontWeight: 700, lineHeight: 1, borderRadius: 6, cursor: "pointer",
           }}>
             {open ? "×" : "⋯"}

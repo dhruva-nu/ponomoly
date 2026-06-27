@@ -49,7 +49,7 @@ export default function RentModal({
           {space.name}
         </div>
         <div style={{ ...eyebrowStyle(COLOR.rose), marginTop: 6 }}>Rent due to {ownerName}</div>
-        <div style={{ margin: "18px 4px 4px", borderTop: "1px solid rgba(120,180,255,.16)", borderBottom: "1px solid rgba(120,180,255,.16)", padding: "14px 2px" }}>
+        <div style={{ margin: "18px 4px 4px", borderTop: "1px solid rgba(0,0,0,.12)", borderBottom: "1px solid rgba(0,0,0,.12)", padding: "14px 2px" }}>
           <div style={{ color: COLOR.slate, fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>Amount</div>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 8 }}>
             {reduced && (
@@ -94,9 +94,9 @@ const minimizeStyle = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: 7,
-  border: "1px solid rgba(255,255,255,.3)",
-  background: "rgba(0,0,0,.25)",
-  color: "#fff",
+  border: "1px solid rgba(0,0,0,.2)",
+  background: "rgba(0,0,0,.06)",
+  color: COLOR.text,
   fontSize: 18,
   lineHeight: 1,
   cursor: "pointer",

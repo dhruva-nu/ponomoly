@@ -1,7 +1,7 @@
 "use client";
 
 import { BOARD, spaceColor } from "@game/board";
-import { headerStyle } from "./theme";
+import { COLOR, headerStyle } from "./theme";
 
 /** The glyph a property modal shows in its header band. */
 export function spaceGlyph(spaceIndex: number): string {
@@ -25,7 +25,7 @@ export default function PropertyHeader({
     <div style={headerStyle(spaceColor(spaceIndex), height)}>
       <span
         className="font-display"
-        style={{ fontSize, color: "#eef4ff", textShadow: "0 0 12px rgba(255,255,255,.5)" }}
+        style={{ fontSize, color: COLOR.abyss, textShadow: "0 1px 2px rgba(0,0,0,.35)" }}
       >
         {glyph ?? spaceGlyph(spaceIndex)}
       </span>

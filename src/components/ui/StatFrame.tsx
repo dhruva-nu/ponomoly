@@ -12,8 +12,8 @@ export function StatFrame({ children, style }: { children: ReactNode; style?: CS
         justifyContent: "space-between",
         alignItems: "center",
         margin: "16px 2px 4px",
-        borderTop: "1px solid rgba(120,180,255,.16)",
-        borderBottom: "1px solid rgba(120,180,255,.16)",
+        borderTop: "1px solid rgba(0,0,0,.15)",
+        borderBottom: "1px solid rgba(0,0,0,.15)",
         padding: "12px 2px",
         ...style,
       }}
