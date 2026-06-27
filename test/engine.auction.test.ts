@@ -16,25 +16,46 @@ function auctionFor(names: string[]) {
 }
 
 describe("opening an auction", () => {
-  it("opens when the lander declines, with every solvent player in the running", () => {
-    const game = auctionFor(["Ada", "Bo", "Cy"]);
+  it("opens when the lander declines, with every solvent player except the decliner", () => {
+    const game = auctionFor(["Ada", "Bo", "Cy"]); // Ada (0) is the decliner
     expect(game.state.pendingBuy).toBeNull();
     expect(game.state.pendingAuction).toMatchObject({
       pos: 6,
       highBid: 0,
       highBidder: null,
-      active: [0, 1, 2],
+      active: [1, 2], // the decliner is barred from their own declined lot
       endsAt: AUCTION_DURATION_MS, // clock starts at 0
     });
     expect(game.state.log.some((l) => l.includes("auction"))).toBe(true);
   });
 
-  it("opens when the lander cannot afford the property", () => {
+  it("bars the decliner from bidding but lets everyone else bid", () => {
+    const game = auctionFor(["Ada", "Bo", "Cy"]); // Ada (0) declined
+    expect(game.apply("Ada", { type: "bid", amount: 50 }).error).toBe("You're not in this auction.");
+    expect(game.apply("Ada", { type: "auctionPass" }).error).toBe("You're not in this auction.");
+    expect(game.apply("Bo", { type: "bid", amount: 50 }).error).toBeUndefined();
+    expect(game.state.pendingAuction).toMatchObject({ highBid: 50, highBidder: 1 });
+  });
+
+  it("voids the lot when excluding the decliner leaves no eligible bidders", () => {
+    const game = startedGame(["Ada", "Bo"]);
+    const wiped = structuredClone(game.state);
+    wiped.players[1].bankrupt = true; // Bo is out, only the decliner is solvent
+    game.admin({ kind: "replaceState", state: wiped });
+    game.rigRoll("Ada", 2, 4); // 0 -> space 6
+    game.apply("Ada", { type: "pass" });
+    expect(game.state.pendingAuction).toBeNull(); // dead on arrival
+    expect(game.state.owners[6]).toBeUndefined(); // stays with the bank
+    expect(game.state.log.some((l) => l.includes("no bids"))).toBe(true);
+  });
+
+  it("opens when the lander cannot afford the property, keeping them in the running", () => {
     const game = startedGame(["Ada", "Bo"]);
     game.admin({ kind: "setCash", target: 0, amount: 10 });
     game.rigRoll("Ada", 3, 3);
     game.apply("Ada", { type: "buy" }); // 10 < 100 -> auction, not a silent skip
     expect(game.state.owners[6]).toBeUndefined();
+    // Can't-afford is involuntary, so unlike a decline the player still bids.
     expect(game.state.pendingAuction).toMatchObject({ pos: 6, active: [0, 1] });
   });
 
@@ -45,7 +66,8 @@ describe("opening an auction", () => {
     game.admin({ kind: "replaceState", state: wiped });
     game.rigRoll("Ada", 3, 3);
     game.apply("Ada", { type: "pass" });
-    expect(game.state.pendingAuction?.active).toEqual([0, 1]);
+    // Cy (2) is bankrupt and Ada (0) is the decliner — both excluded, leaving Bo.
+    expect(game.state.pendingAuction?.active).toEqual([1]);
   });
 });
 
@@ -150,7 +172,7 @@ describe("resolving an auction", () => {
     const idle = startedGame(["Ada", "Bo"]);
     expect(idle.apply("Ada", { type: "tickAuction" }).error).toBeUndefined();
 
-    const game = auctionFor(["Ada", "Bo"]);
+    const game = auctionFor(["Ada", "Bo", "Cy"]); // 3 players so >1 bidder remains
     game.apply("Bo", { type: "bid", amount: 50 });
     game.apply("Ada", { type: "tickAuction" }); // clock 0 < deadline
     expect(game.state.pendingAuction?.highBid).toBe(50);

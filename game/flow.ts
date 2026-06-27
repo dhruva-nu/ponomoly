@@ -92,34 +92,44 @@ export function eliminatePlayer(
 }
 
 /**
- * Open an auction for `pos` among every solvent player (including the one who
- * just declined) and start the countdown. Assumes no auction is already live —
- * callers route through `enqueueAuctions` to serialize.
+ * Open an auction for `pos` among every solvent player and start the countdown.
+ * `excludeIndex` drops one player from the bidder pool (the player who declined
+ * the purchase that triggered this lot — they may not buy at a discount what
+ * they just refused); pass -1 to include everyone. Assumes no auction is already
+ * live — callers route through `enqueueAuctions` to serialize.
  */
-export function openAuction(state: GameState, pos: number, now: number): void {
+export function openAuction(state: GameState, pos: number, now: number, excludeIndex = -1): void {
   state.pendingAuction = {
     pos,
     highBid: 0,
     highBidder: null,
-    active: solventPlayerIndices(state),
+    active: solventPlayerIndices(state).filter((i) => i !== excludeIndex),
     endsAt: now + AUCTION_DURATION_MS,
   };
   appendLog(state, `${BOARD[pos].name} goes up for auction!`);
 }
 
 /** Queue one or more properties for auction and open the head if none is live.
- *  Auctions run one at a time, in order. */
-export function enqueueAuctions(state: GameState, positions: number[], now: number): void {
+ *  Auctions run one at a time, in order. `excludeIndex` only applies to the lot
+ *  opened immediately by this call (a single declined property); queued lots and
+ *  later chained lots include every solvent player. */
+export function enqueueAuctions(state: GameState, positions: number[], now: number, excludeIndex = -1): void {
   state.auctionQueue.push(...positions);
-  openNextAuction(state, now);
+  openNextAuction(state, now, excludeIndex);
 }
 
 /** Open the next queued lot, if any, when no auction is currently running. */
-export function openNextAuction(state: GameState, now: number): void {
+export function openNextAuction(state: GameState, now: number, excludeIndex = -1): void {
   if (state.pendingAuction) return;
   const next = state.auctionQueue.shift();
   if (next === undefined) return;
-  openAuction(state, next, now);
+  openAuction(state, next, now, excludeIndex);
+  // A lot with no eligible bidders (e.g. excluding the decliner leaves nobody
+  // solvent left in a 2-player game) is dead on arrival — void it and move on.
+  if (state.pendingAuction && state.pendingAuction.active.length === 0) {
+    resolveAuction(state);
+    openNextAuction(state, now);
+  }
 }
 
 /** True once an auction has no reason to stay open: timed out, abandoned by
