@@ -14,6 +14,8 @@ export function createInitialState(hostId: string | null = null): GameState {
     pendingBuy: null,
     pendingRent: null,
     pendingTrade: null,
+    pendingAuction: null,
+    auctionQueue: [],
     lastRoll: null,
     log: [],
     winner: null,
@@ -27,5 +29,7 @@ export function normalizeState(state: GameState): GameState {
   if (!state.buildings) state.buildings = {};
   if (!state.mortgaged) state.mortgaged = {};
   if (state.pendingTrade === undefined) state.pendingTrade = null;
+  if (state.pendingAuction === undefined) state.pendingAuction = null;
+  if (!state.auctionQueue) state.auctionQueue = [];
   return state;
 }

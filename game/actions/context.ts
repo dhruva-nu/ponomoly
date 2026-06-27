@@ -18,6 +18,8 @@ export interface ActionContext {
   /** index of the acting player in `state.players`, or -1 if not seated */
   index: number;
   random: RandomSource;
+  /** epoch-ms timestamp this action is applied at (auction timing) */
+  now: number;
 }
 
 /** Convenience result returned by handlers. */
