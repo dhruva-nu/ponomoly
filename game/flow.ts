@@ -233,7 +233,7 @@ export function resolveLanding(state: GameState, random: RandomSource, allowCard
   } else if (space.t === "go") {
     appendLog(state, `${player.name} landed on GO. Collected $200.`);
   } else if (space.t === "parking") {
-    appendLog(state, `${player.name} rests at Free Parking.`);
+    appendLog(state, `${player.name} relaxes at Free Parking.`);
   } else {
     // The only remaining space type is the (just-visiting) Jail corner.
     appendLog(state, `${player.name} is visiting Jail.`);
