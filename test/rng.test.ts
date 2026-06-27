@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARD_OUTCOMES, defaultRandomSource, drawCard, rollDie } from "@game/rng";
+import { defaultRandomSource, drawCard, rollDie } from "@game/rng";
 
 describe("rollDie", () => {
   it("maps the random range onto 1–6", () => {
@@ -10,13 +10,14 @@ describe("rollDie", () => {
 });
 
 describe("drawCard", () => {
-  it("selects a cash card by the random index", () => {
-    expect(drawCard(() => 0)).toEqual({ kind: "cash", delta: CARD_OUTCOMES[0] });
-    expect(drawCard(() => 0.8)).toEqual({ kind: "cash", delta: CARD_OUTCOMES[CARD_OUTCOMES.length - 1] });
+  it("indexes into the requested deck by the random value", () => {
+    expect(drawCard("chance", () => 0)).toMatchObject({ action: "subtract", amount: 100 });
+    expect(drawCard("chest", () => 0)).toMatchObject({ action: "add", amount: 200 });
   });
 
-  it("draws a Get Out of Jail Free card from the top slot", () => {
-    expect(drawCard(() => 0.99)).toEqual({ kind: "jailFree" });
+  it("draws a Get Out of Jail Free card from the top slot of either deck", () => {
+    expect(drawCard("chance", () => 0.99)).toMatchObject({ action: "jailFree" });
+    expect(drawCard("chest", () => 0.99)).toMatchObject({ action: "jailFree" });
   });
 });
 

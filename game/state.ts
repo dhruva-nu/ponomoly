@@ -18,6 +18,8 @@ export function createInitialState(hostId: string | null = null): GameState {
     auctionQueue: [],
     doublesStreak: 0,
     lastRoll: null,
+    lastGo: null,
+    lastCard: null,
     log: [],
     winner: null,
     riggedDice: null,
@@ -33,6 +35,8 @@ export function normalizeState(state: GameState): GameState {
   if (state.pendingAuction === undefined) state.pendingAuction = null;
   if (!state.auctionQueue) state.auctionQueue = [];
   if (typeof state.doublesStreak !== "number") state.doublesStreak = 0;
+  if (state.lastGo === undefined) state.lastGo = null;
+  if (state.lastCard === undefined) state.lastCard = null;
   for (const player of state.players) {
     if (typeof player.jailed !== "boolean") player.jailed = false;
     if (typeof player.jailTurns !== "number") player.jailTurns = 0;

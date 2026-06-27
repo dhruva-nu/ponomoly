@@ -12,19 +12,35 @@ export function rollDie(random: RandomSource): number {
   return 1 + Math.floor(random() * 6);
 }
 
-/** Cash deltas a Chance / Vault card can award or charge. */
-export const CARD_OUTCOMES = [-100, -75, -50, 50, 100, 150, 200] as const;
+import cardData from "./cards.json";
 
-/** A drawn card: either a cash swing or a keepable Get Out of Jail Free card. */
-export type CardOutcome = { kind: "cash"; delta: number } | { kind: "jailFree" };
+/** Which deck a card is drawn from — matches the two card space types. */
+export type DeckType = "chance" | "chest";
 
-/**
- * Draw one card from the deck: the cash outcomes plus a single Get Out of Jail
- * Free card occupying the final slot (so it lands roughly 1-in-8 of the time).
- */
-export function drawCard(random: RandomSource): CardOutcome {
-  const slots = CARD_OUTCOMES.length + 1; // +1 for the jail-free card
-  const index = Math.floor(random() * slots);
-  if (index >= CARD_OUTCOMES.length) return { kind: "jailFree" };
-  return { kind: "cash", delta: CARD_OUTCOMES[index] };
+/** What a drawn card does to the player who drew it:
+ *  - `add` / `subtract`: change cash by `amount`
+ *  - `move`: relocate to board index `to` (an "advance to", crediting GO if it
+ *    wraps past it) or by relative offset `by`
+ *  - `gotojail`: sent straight to Jail (no GO salary)
+ *  - `jailFree`: keep a Get Out of Jail Free card */
+export type CardAction = "add" | "subtract" | "move" | "gotojail" | "jailFree";
+
+/** A single Chance / Community Chest card, as authored in cards.json. */
+export interface Card {
+  text: string;
+  action: CardAction;
+  /** cash moved by `add` / `subtract` */
+  amount?: number;
+  /** absolute destination index for a `move` ("advance to") */
+  to?: number;
+  /** relative step for a `move` (negative = go back) */
+  by?: number;
+}
+
+const DECKS = cardData as Record<DeckType, Card[]>;
+
+/** Draw one card at random from the given deck. */
+export function drawCard(deck: DeckType, random: RandomSource): Card {
+  const cards = DECKS[deck];
+  return cards[Math.floor(random() * cards.length)];
 }

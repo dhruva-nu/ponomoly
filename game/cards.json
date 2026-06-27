@@ -1,0 +1,26 @@
+{
+  "chance": [
+    { "text": "Pay building and loan fees of $100.", "action": "subtract", "amount": 100 },
+    { "text": "Advance to GO. Collect $200.", "action": "move", "to": 0 },
+    { "text": "Take a trip to North Station.", "action": "move", "to": 5 },
+    { "text": "Advance to Diamond Drive.", "action": "move", "to": 39 },
+    { "text": "Go back 3 spaces.", "action": "move", "by": -3 },
+    { "text": "Go directly to Jail. Do not pass GO.", "action": "gotojail" },
+    { "text": "Speeding fine. Pay $15.", "action": "subtract", "amount": 15 },
+    { "text": "Bank pays you a dividend of $50.", "action": "add", "amount": 50 },
+    { "text": "Your building loan matures. Collect $200.", "action": "add", "amount": 200 },
+    { "text": "Get Out of Jail Free.", "action": "jailFree" }
+  ],
+  "chest": [
+    { "text": "Bank error in your favor. Collect $200.", "action": "add", "amount": 200 },
+    { "text": "Advance to GO. Collect $200.", "action": "move", "to": 0 },
+    { "text": "Doctor's fee. Pay $50.", "action": "subtract", "amount": 50 },
+    { "text": "Sale of stock. Collect $50.", "action": "add", "amount": 50 },
+    { "text": "Hospital fees. Pay $100.", "action": "subtract", "amount": 100 },
+    { "text": "Go directly to Jail. Do not pass GO.", "action": "gotojail" },
+    { "text": "Income tax refund. Collect $20.", "action": "add", "amount": 20 },
+    { "text": "Pay a fine of $75.", "action": "subtract", "amount": 75 },
+    { "text": "Holiday fund matures. Collect $100.", "action": "add", "amount": 100 },
+    { "text": "Get Out of Jail Free.", "action": "jailFree" }
+  ]
+}

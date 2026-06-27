@@ -6,6 +6,7 @@ import { BOARD } from "@game/board";
 import Board from "./board/Board";
 import GameSidebar from "./game/sidebar/GameSidebar";
 import GameModals, { type ManageTarget } from "./game/GameModals";
+import CardModal from "./game/modals/CardModal";
 import Confetti from "./game/Confetti";
 import { deriveGameView } from "./game/gameView";
 import { COLOR, GRADIENT } from "./ui/theme";
@@ -46,9 +47,20 @@ export default function Game({
   const [showTrade, setShowTrade] = useState(false);
   const [confetti, setConfetti] = useState(0);
   const [tradeAck, setTradeAck] = useState<TradeAck | null>(null);
+  const [goAck, setGoAck] = useState<{ name: string; amount: number } | null>(null);
+  const [cardAck, setCardAck] = useState<{ deck: "chance" | "chest"; text: string; name: string } | null>(null);
   const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const goAckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks the last GO payout id we've shown, so the toast fires once per payout
+  // (and never on the initial join snapshot).
+  const goInitRef = useRef(false);
+  const lastGoIdRef = useRef(0);
+  // Same one-shot tracking for the drawn-card popup.
+  const cardInitRef = useRef(false);
+  const lastCardIdRef = useRef(0);
   const lastLogRef = useRef<string | null>(null);
   // The most recent live trade offer, kept so we can describe it once it completes
   // (pendingTrade is cleared on the same broadcast that logs the completion).
@@ -63,7 +75,43 @@ export default function Game({
     if (rollTimer.current) clearTimeout(rollTimer.current);
     if (holdTimer.current) clearTimeout(holdTimer.current);
     if (ackTimer.current) clearTimeout(ackTimer.current);
+    if (goAckTimer.current) clearTimeout(goAckTimer.current);
+    if (cardTimer.current) clearTimeout(cardTimer.current);
   }, []);
+
+  // Pop the drawn Chance / Vault card for every player. Like the GO toast: skip
+  // the join snapshot, then fire once each time the draw id changes.
+  useEffect(() => {
+    const card = state.lastCard;
+    const id = card?.id ?? 0;
+    if (!cardInitRef.current) {
+      cardInitRef.current = true;
+      lastCardIdRef.current = id;
+      return;
+    }
+    if (!card || id === lastCardIdRef.current) return;
+    lastCardIdRef.current = id;
+    setCardAck({ deck: card.deck, text: card.text, name: state.players[card.player]?.name ?? "A player" });
+    if (cardTimer.current) clearTimeout(cardTimer.current);
+    cardTimer.current = setTimeout(() => setCardAck(null), 2000);
+  }, [state.lastCard, state.players]);
+
+  // Pop a toast whenever a player collects their GO salary. Mirrors the trade
+  // ack: skip the join snapshot, then fire once each time the payout id changes.
+  useEffect(() => {
+    const go = state.lastGo;
+    const id = go?.id ?? 0;
+    if (!goInitRef.current) {
+      goInitRef.current = true;
+      lastGoIdRef.current = id;
+      return;
+    }
+    if (!go || id === lastGoIdRef.current) return;
+    lastGoIdRef.current = id;
+    setGoAck({ name: state.players[go.player]?.name ?? "A player", amount: go.amount });
+    if (goAckTimer.current) clearTimeout(goAckTimer.current);
+    goAckTimer.current = setTimeout(() => setGoAck(null), 3500);
+  }, [state.lastGo, state.players]);
 
   // Remember the live trade offer so we can describe it the instant it completes.
   useEffect(() => {
@@ -169,6 +217,36 @@ export default function Game({
         </div>
       )}
 
+      {goAck && (
+        <div
+          style={{
+            position: "fixed",
+            top: tradeAck ? 110 : 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9998,
+            maxWidth: "92vw",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 22px",
+            borderRadius: 16,
+            background: GRADIENT.primary,
+            color: COLOR.abyss,
+            boxShadow: "0 12px 30px rgba(34,24,8,.3)",
+            animation: "popIn .25s ease",
+            pointerEvents: "none",
+            textAlign: "center",
+            fontWeight: 800,
+            fontSize: 15,
+            letterSpacing: 0.3,
+          }}
+        >
+          <span style={{ fontSize: 20 }}>💰</span>
+          ${goAck.amount} added to {goAck.name} for passing GO
+        </div>
+      )}
+
       <Board state={state} youIndex={view.myIndex} />
 
       <GameSidebar
@@ -197,6 +275,10 @@ export default function Game({
         manageTarget={manageTarget}
         clearManageTarget={() => setManageTarget(null)}
       />
+
+      {cardAck && (
+        <CardModal deck={cardAck.deck} text={cardAck.text} playerName={cardAck.name} />
+      )}
     </div>
   );
 }

@@ -82,6 +82,15 @@ describe("landing resolution", () => {
     expect(g.state.log.at(-1)).toContain("GO");
   });
 
+  it("signals a GO payout when passing GO (for the client toast)", () => {
+    const g = game();
+    g.admin({ kind: "movePlayer", target: 0, position: 38 });
+    g.rigRoll("Ada", 1, 2); // 38 + 3 = 41 -> 1, sailing past GO
+    expect(g.player(0).cash).toBe(1700);
+    expect(g.state.lastGo).toEqual({ player: 0, amount: 200, id: 1 });
+    expect(g.state.log.some((line) => line.includes("passed GO"))).toBe(true);
+  });
+
   it("applies positive and negative card draws", () => {
     const positive = game();
     positive.rigRoll("Ada", 3, 4, () => 0.8); // space 7 = Chance, top cash outcome +200

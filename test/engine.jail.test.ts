@@ -58,6 +58,15 @@ describe("go to jail", () => {
     expect(game.player(0).jailed).toBe(true);
     expect(game.player(0).position).toBe(JAIL_INDEX);
   });
+
+  it("only visits — never jails — a player who lands on the Jail corner", () => {
+    const game = startedGame(["Ada", "Bo"]);
+    game.admin({ kind: "movePlayer", target: 0, position: 4 });
+    game.rigRoll("Ada", 2, 4); // 4 + 6 = 10 (the Jail corner)
+    expect(game.player(0).position).toBe(JAIL_INDEX);
+    expect(game.player(0).jailed).toBe(false);
+    expect(game.state.log.at(-1)).toContain("visiting Jail");
+  });
 });
 
 describe("escaping jail", () => {

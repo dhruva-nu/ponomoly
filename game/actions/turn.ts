@@ -1,8 +1,9 @@
 import { BOARD } from "../board";
-import { BOARD_SIZE, DOUBLES_TO_JAIL, GO_SALARY, JAIL_FINE, JAIL_MAX_TURNS } from "../constants";
+import { BOARD_SIZE, DOUBLES_TO_JAIL, JAIL_FINE, JAIL_MAX_TURNS } from "../constants";
 import { appendLog } from "../helpers";
 import {
   advanceTurn,
+  creditGo,
   eliminatePlayer,
   enqueueAuctions,
   resolveLanding,
@@ -30,7 +31,9 @@ function advancePawn(ctx: ActionContext, total: number): void {
   const player = state.players[state.turn];
   const before = player.position;
   player.position = (player.position + total) % BOARD_SIZE;
-  if (player.position < before) player.cash += GO_SALARY; // passed GO
+  // Wrapped past (or landed on) GO: pay the salary. Landing exactly on GO is
+  // announced by resolveLanding's "go" branch, so creditGo stays quiet there.
+  if (player.position < before) creditGo(state, state.turn, player.position === 0);
   resolveLanding(state, ctx.random);
 }
 

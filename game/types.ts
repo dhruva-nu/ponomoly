@@ -131,6 +131,12 @@ export interface GameState {
   doublesStreak: number;
   /** most recent dice total, for client animation */
   lastRoll: number | null;
+  /** signals the latest GO salary payout so clients can pop a one-shot toast;
+   *  `id` is a monotonic counter the client compares against to fire it once */
+  lastGo: { player: number; amount: number; id: number } | null;
+  /** signals the latest Chance / Community Chest draw so every client can pop the
+   *  drawn card; `id` is a monotonic counter the client fires the popup off once */
+  lastCard: { player: number; deck: "chance" | "chest"; text: string; id: number } | null;
   log: string[];
   winner: number | null;
   /** admin override: forces the next roll to these values, then clears */

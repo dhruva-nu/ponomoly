@@ -1,9 +1,9 @@
 import type { Auction, GameState } from "./types";
 import { BOARD, isOwnable } from "./board";
-import { AUCTION_DURATION_MS, JAIL_INDEX } from "./constants";
+import { AUCTION_DURATION_MS, BOARD_SIZE, GO_SALARY, JAIL_INDEX } from "./constants";
 import { appendLog, solventPlayerIndices } from "./helpers";
 import { rentFor } from "./rent";
-import { drawCard, type RandomSource } from "./rng";
+import { type Card, type DeckType, drawCard, type RandomSource } from "./rng";
 
 /**
  * Tear a player out of play: mark them bankrupt, strip improvements/mortgages
@@ -153,8 +153,63 @@ export function sendToJail(state: GameState, playerIdx: number): void {
   appendLog(state, `${player.name} was sent to Jail.`);
 }
 
-/** Resolve the effect of the current player landing on their current space. */
-export function resolveLanding(state: GameState, random: RandomSource): void {
+/** Pay a player their GO salary and signal a one-shot client toast. When they
+ *  passed GO mid-move (rather than landing on it) we also log it; landing
+ *  exactly on GO is announced by the caller's "go" branch instead. */
+export function creditGo(state: GameState, playerIdx: number, landedOnGo: boolean): void {
+  const player = state.players[playerIdx];
+  player.cash += GO_SALARY;
+  state.lastGo = { player: playerIdx, amount: GO_SALARY, id: (state.lastGo?.id ?? 0) + 1 };
+  if (!landedOnGo) appendLog(state, `${player.name} passed GO and collected $${GO_SALARY}.`);
+}
+
+/**
+ * Carry out a drawn Chance / Community Chest card. A `move` relocates the player
+ * (crediting GO on a forward wrap) and then resolves the new landing — but with
+ * card draws disabled, so a card can never chain into another card draw.
+ */
+function applyCard(state: GameState, turn: number, deck: DeckType, card: Card, random: RandomSource): void {
+  const player = state.players[turn];
+  appendLog(state, `${player.name} drew: ${card.text}`);
+  // Signal the drawn card so every client can pop it; the rules below then apply.
+  state.lastCard = { player: turn, deck, text: card.text, id: (state.lastCard?.id ?? 0) + 1 };
+
+  switch (card.action) {
+    case "add":
+      player.cash += card.amount ?? 0;
+      break;
+    case "subtract":
+      player.cash -= card.amount ?? 0;
+      settleDebt(state, turn);
+      break;
+    case "jailFree":
+      player.jailCards += 1;
+      break;
+    case "gotojail":
+      sendToJail(state, turn); // straight to Jail — no GO salary
+      break;
+    case "move": {
+      const before = player.position;
+      let dest: number;
+      if (typeof card.to === "number") {
+        dest = card.to; // "advance to" always moves forward, wrapping past GO
+        if (dest < before) creditGo(state, turn, dest === 0);
+      } else {
+        const by = card.by ?? 0;
+        dest = (before + by + BOARD_SIZE) % BOARD_SIZE;
+        if (by > 0 && dest < before) creditGo(state, turn, dest === 0); // only a forward wrap pays
+      }
+      player.position = dest;
+      resolveLanding(state, random, false); // resolve the destination; no further card draw
+      break;
+    }
+  }
+}
+
+/** Resolve the effect of the current player landing on their current space.
+ *  `allowCard` is false when the landing was reached via a card move, so a card
+ *  space resolves to a no-op instead of drawing again. */
+export function resolveLanding(state: GameState, random: RandomSource, allowCard = true): void {
   const turn = state.turn;
   const player = state.players[turn];
   const space = BOARD[player.position];
@@ -170,20 +225,11 @@ export function resolveLanding(state: GameState, random: RandomSource): void {
   } else if (space.t === "gotojail") {
     sendToJail(state, turn);
   } else if (space.t === "chance" || space.t === "chest") {
-    const card = drawCard(random);
-    if (card.kind === "jailFree") {
-      player.jailCards += 1;
-      appendLog(state, `${player.name} drew a Get Out of Jail Free card.`);
-    } else {
-      player.cash += card.delta;
-      appendLog(
-        state,
-        card.delta >= 0
-          ? `${player.name} drew a card: +$${card.delta}.`
-          : `${player.name} drew a card: -$${-card.delta}.`,
-      );
-      if (card.delta < 0) settleDebt(state, turn);
+    if (!allowCard) {
+      appendLog(state, `${player.name} rests at ${space.name}.`);
+      return;
     }
+    applyCard(state, turn, space.t, drawCard(space.t, random), random);
   } else if (space.t === "go") {
     appendLog(state, `${player.name} landed on GO. Collected $200.`);
   } else if (space.t === "parking") {
