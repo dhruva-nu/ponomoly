@@ -4,6 +4,8 @@ import { normalizeState } from "../game/state";
 import { MAX_PLAYERS } from "../game/board";
 import { LOG_LIMIT } from "../game/constants";
 import type { ClientAction, GameState, ServerMessage } from "../game/types";
+import type { RegistryUpdate, RoomSummary } from "../game/rooms";
+import { isAuthorized, jsonResponse, preflight } from "./auth";
 
 const STORAGE_KEY = "game";
 
@@ -26,6 +28,39 @@ export default class PonomolyServer implements Party.Server {
     await this.room.storage.put(STORAGE_KEY, this.state);
   }
 
+  /** A snapshot of this room for the management directory. */
+  private summarize(): RoomSummary {
+    const host = this.state.players.find((p) => p.id === this.state.hostId);
+    return {
+      id: this.room.id,
+      phase: this.state.phase,
+      players: this.state.players.map((p) => ({ name: p.name, connected: p.connected })),
+      hostName: host?.name ?? null,
+      updatedAt: Date.now(),
+    };
+  }
+
+  /**
+   * Keep this room's entry in the registry current. Rooms with no players are
+   * removed from the directory rather than listed as empty. Best-effort — a
+   * registry hiccup must never disrupt gameplay.
+   */
+  private async report() {
+    try {
+      const update: RegistryUpdate =
+        this.state.players.length > 0
+          ? { type: "upsert", room: this.summarize() }
+          : { type: "remove", id: this.room.id };
+      await this.room.context.parties.registry.get("index").fetch({
+        method: "POST",
+        body: JSON.stringify(update),
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch {
+      // ignore — directory is non-critical
+    }
+  }
+
   private send(conn: Party.Connection, msg: ServerMessage) {
     conn.send(JSON.stringify(msg));
   }
@@ -37,12 +72,38 @@ export default class PonomolyServer implements Party.Server {
     }
   }
 
-  onConnect(conn: Party.Connection) {
+  async onConnect(conn: Party.Connection) {
     // Connection id IS the player id (client supplies a stable id). Reconnects
     // re-attach to the same seat.
     const idx = playerIndex(this.state, conn.id);
-    if (idx >= 0) this.state.players[idx].connected = true;
+    if (idx >= 0) {
+      this.state.players[idx].connected = true;
+      await this.save();
+      await this.report();
+    }
     this.send(conn, { type: "state", state: this.state, you: conn.id });
+  }
+
+  /** Admin: destroy this room — wipe persisted state and evict everyone. */
+  async onRequest(req: Party.Request): Promise<Response> {
+    if (req.method === "OPTIONS") return preflight();
+
+    if (req.method === "DELETE") {
+      if (!isAuthorized(req, this.room)) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+      await this.room.storage.delete(STORAGE_KEY);
+      this.state = createInitialState();
+      // Tell anyone still connected, then reset their view to a fresh lobby.
+      for (const conn of this.room.getConnections()) {
+        this.send(conn, { type: "error", message: "This room was closed by an admin." });
+      }
+      this.broadcast();
+      await this.report(); // no players -> deregisters from the directory
+      return jsonResponse({ ok: true });
+    }
+
+    return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
   async onMessage(raw: string, sender: Party.Connection) {
@@ -74,6 +135,7 @@ export default class PonomolyServer implements Party.Server {
     this.state = state;
     await this.save();
     this.broadcast();
+    await this.report();
   }
 
   async onClose(conn: Party.Connection) {
@@ -96,6 +158,7 @@ export default class PonomolyServer implements Party.Server {
     }
     await this.save();
     this.broadcast();
+    await this.report();
   }
 }
 
