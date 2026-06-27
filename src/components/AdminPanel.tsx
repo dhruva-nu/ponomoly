@@ -132,6 +132,7 @@ export default function AdminPanel({
             <RiggedDice state={state} run={run} />
             <PlayersSection state={state} run={run} />
             <OwnerSection state={state} run={run} />
+            <BuildingSection state={state} run={run} />
             <PhaseSection run={run} current={state.phase} />
             <RawStateSection state={state} run={run} />
           </div>
@@ -272,6 +273,43 @@ function OwnerSection({ state, run }: { state: GameState; run: (c: AdminCmd) => 
         </select>
         <button onClick={() => run({ kind: "setOwner", pos, owner: owner === "none" ? null : owner })} style={panelBtn()}>
           Assign
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BuildingSection({ state, run }: { state: GameState; run: (c: AdminCmd) => void }) {
+  const props = BOARD.filter((s) => s.t === "prop");
+  const [pos, setPos] = useState(props[0]?.idx ?? 1);
+  const level = state.buildings[pos] || 0;
+  const levelLabel = level === 0 ? "None" : level === 5 ? "Hotel" : `${level} House${level > 1 ? "s" : ""}`;
+
+  return (
+    <div>
+      <div style={sectionTitle}>Buildings</div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={pos} onChange={(e) => setPos(+e.target.value)} style={{ ...field, width: "auto", maxWidth: 170 }}>
+          {props.map((s) => (
+            <option key={s.idx} value={s.idx}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <span style={{ fontSize: 12, color: "#9fb4d8", fontWeight: 600 }}>{levelLabel}</span>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
+        <button onClick={() => run({ kind: "setBuildings", pos, level: Math.min(5, level + 1) })} style={panelBtn("#2bd9a0")}>
+          Build House +1
+        </button>
+        <button onClick={() => run({ kind: "setBuildings", pos, level: Math.max(0, level - 1) })} style={panelBtn("#ffd23c")}>
+          Remove −1
+        </button>
+        <button onClick={() => run({ kind: "setBuildings", pos, level: 5 })} style={panelBtn("#ff8a3c")}>
+          Hotel
+        </button>
+        <button onClick={() => run({ kind: "setBuildings", pos, level: 0 })} style={panelBtn("#9fb4d8")}>
+          Clear
         </button>
       </div>
     </div>
