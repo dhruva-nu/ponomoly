@@ -4,7 +4,7 @@ import type { Phase } from "@game/types";
 import { COLOR } from "@/components/ui/theme";
 import { panelButton, sectionTitle, type RunAdmin } from "./adminStyles";
 
-const PHASES: Phase[] = ["lobby", "playing", "ended"];
+const PHASES: Phase[] = ["lobby", "rolloff", "playing", "ended"];
 
 /** Force the game into a specific phase. */
 export default function PhaseSection({ current, run }: { current: Phase; run: RunAdmin }) {

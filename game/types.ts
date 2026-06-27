@@ -76,7 +76,16 @@ export interface Player {
   jailCards: number;
 }
 
-export type Phase = "lobby" | "playing" | "ended";
+export type Phase = "lobby" | "rolloff" | "playing" | "ended";
+
+/** Opening roll-off held between lobby and play: every seated player rolls once
+ *  and the highest goes first. On a tie at the top, only the tied players re-roll. */
+export interface RolloffState {
+  /** player index -> their roll this round (absent until they have rolled) */
+  rolls: Record<number, number>;
+  /** player indices still competing to start; narrows to the tied set on a tie */
+  contenders: number[];
+}
 
 export interface Dice {
   d1: number;
@@ -183,6 +192,8 @@ export interface GameState {
   phase: Phase;
   /** id of the player who created the room (lobby host) */
   hostId: string | null;
+  /** live opening roll-off during the `rolloff` phase, else null */
+  rolloff: RolloffState | null;
   players: Player[];
   /** index into players[] whose turn it is */
   turn: number;

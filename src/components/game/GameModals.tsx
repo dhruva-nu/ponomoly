@@ -4,6 +4,7 @@ import type { ClientAction, GameState } from "@game/types";
 import type { GameView } from "./gameView";
 import BuyModal from "./modals/BuyModal";
 import AuctionModal from "./modals/AuctionModal";
+import RolloffModal from "./modals/RolloffModal";
 import RentModal from "./modals/RentModal";
 import RentPill from "./modals/RentPill";
 import OwnerNegotiateModal from "./modals/OwnerNegotiateModal";
@@ -56,6 +57,10 @@ export default function GameModals({
 
   return (
     <>
+      {state.phase === "rolloff" && (
+        <RolloffModal state={state} myIndex={view.myIndex} send={send} />
+      )}
+
       {showBuy && pendingBuy !== null && <BuyModal spaceIndex={pendingBuy} cash={cash} send={send} />}
 
       {showAuction && view.auction !== null && (

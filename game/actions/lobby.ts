@@ -61,7 +61,8 @@ export function handleStart(ctx: ActionContext): HandlerError {
   if (ctx.id !== state.hostId) return "Only the host can start.";
   if (state.players.length < MIN_PLAYERS) return `Need at least ${MIN_PLAYERS} players.`;
 
-  state.phase = "playing";
+  // Before play begins, hold an opening roll-off to decide who goes first.
+  state.phase = "rolloff";
   state.turn = 0;
   state.owners = {};
   state.buildings = {};
@@ -70,7 +71,8 @@ export function handleStart(ctx: ActionContext): HandlerError {
   state.pendingRent = null;
   state.pendingTrade = null;
   state.dice = { d1: 1, d2: 1, rolled: false };
-  state.log = [`${state.players[0].name} to act first.`];
+  state.rolloff = { rolls: {}, contenders: state.players.map((_, i) => i) };
+  state.log = ["Roll for turn order — highest roll goes first."];
 }
 
 export function handleReset(ctx: ActionContext): HandlerError {

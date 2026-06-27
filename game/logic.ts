@@ -4,7 +4,7 @@ import { playerIndex } from "./helpers";
 import { defaultRandomSource, type RandomSource } from "./rng";
 import type { ActionContext, HandlerError } from "./actions/context";
 import { handleCycleToken, handleJoin, handleReset, handleSetName, handleStart } from "./actions/lobby";
-import { handleBuy, handleEndTurn, handlePass, handleRoll, handleSurrender } from "./actions/turn";
+import { handleBuy, handleEndTurn, handlePass, handleRoll, handleRollForOrder, handleSurrender } from "./actions/turn";
 import { handlePayJailFine, handleUseJailCard } from "./actions/jail";
 import { handleAuctionPass, handleBid, handleTickAuction } from "./actions/auction";
 import { handleNegotiateRent, handlePayRent, handleRequestNegotiate } from "./actions/rent";
@@ -25,6 +25,7 @@ function route(ctx: ActionContext, action: ClientAction): HandlerError {
     case "setName": return handleSetName(ctx, action);
     case "cycleToken": return handleCycleToken(ctx);
     case "start": return handleStart(ctx);
+    case "rollForOrder": return handleRollForOrder(ctx);
     case "roll": return handleRoll(ctx);
     case "buy": return handleBuy(ctx);
     case "pass": return handlePass(ctx);

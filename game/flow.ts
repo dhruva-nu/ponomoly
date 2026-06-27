@@ -98,15 +98,17 @@ export function eliminatePlayer(
  * they just refused); pass -1 to include everyone. Assumes no auction is already
  * live — callers route through `enqueueAuctions` to serialize.
  */
-export function openAuction(state: GameState, pos: number, now: number, excludeIndex = -1): void {
-  state.pendingAuction = {
+export function openAuction(state: GameState, pos: number, now: number, excludeIndex = -1): Auction {
+  const auction: Auction = {
     pos,
     highBid: 0,
     highBidder: null,
     active: solventPlayerIndices(state).filter((i) => i !== excludeIndex),
     endsAt: now + AUCTION_DURATION_MS,
   };
+  state.pendingAuction = auction;
   appendLog(state, `${BOARD[pos].name} goes up for auction!`);
+  return auction;
 }
 
 /** Queue one or more properties for auction and open the head if none is live.
@@ -123,10 +125,10 @@ export function openNextAuction(state: GameState, now: number, excludeIndex = -1
   if (state.pendingAuction) return;
   const next = state.auctionQueue.shift();
   if (next === undefined) return;
-  openAuction(state, next, now, excludeIndex);
+  const auction = openAuction(state, next, now, excludeIndex);
   // A lot with no eligible bidders (e.g. excluding the decliner leaves nobody
   // solvent left in a 2-player game) is dead on arrival — void it and move on.
-  if (state.pendingAuction && state.pendingAuction.active.length === 0) {
+  if (auction.active.length === 0) {
     resolveAuction(state);
     openNextAuction(state, now);
   }
@@ -297,6 +299,29 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
   } else {
     appendLog(state, `${player.name} holds ${space.name}.`);
   }
+}
+
+/** Resolve the opening roll-off once every contender has rolled this round: the
+ *  highest roller starts play; a tie at the top triggers a re-roll among only the
+ *  tied players. */
+export function resolveRolloff(state: GameState): void {
+  const rolloff = state.rolloff;
+  if (!rolloff) return;
+  const top = Math.max(...rolloff.contenders.map((i) => rolloff.rolls[i]));
+  const leaders = rolloff.contenders.filter((i) => rolloff.rolls[i] === top);
+  if (leaders.length === 1) {
+    const starter = leaders[0];
+    state.rolloff = null;
+    state.phase = "playing";
+    state.turn = starter;
+    state.dice = { d1: 1, d2: 1, rolled: false };
+    appendLog(state, `${state.players[starter].name} rolled highest (${top}) and starts.`);
+    return;
+  }
+  // Tie at the top — only the tied players roll again.
+  const names = leaders.map((i) => state.players[i].name).join(", ");
+  state.rolloff = { rolls: {}, contenders: leaders };
+  appendLog(state, `Tie at ${top} between ${names} — roll again.`);
 }
 
 /** Hand the turn to the next solvent player, or end the game if only one remains. */

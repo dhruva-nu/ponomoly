@@ -7,6 +7,7 @@ import {
   eliminatePlayer,
   enqueueAuctions,
   resolveLanding,
+  resolveRolloff,
   sendToJail,
   settleDebt,
 } from "../flow";
@@ -35,6 +36,33 @@ function advancePawn(ctx: ActionContext, total: number): void {
   // announced by resolveLanding's "go" branch, so creditGo stays quiet there.
   if (player.position < before) creditGo(state, state.turn, player.position === 0);
   resolveLanding(state, ctx.random);
+}
+
+/** Roll the dice during the opening roll-off (decides who starts). One roll per
+ *  contender per round; resolves automatically once all contenders have rolled. */
+export function handleRollForOrder(ctx: ActionContext): HandlerError {
+  const { state, index } = ctx;
+  if (state.phase !== "rolloff" || !state.rolloff) return "Not rolling for turn order.";
+  if (index < 0) return "Not in this game.";
+  const rolloff = state.rolloff;
+  if (!rolloff.contenders.includes(index)) return "You're not in the roll-off.";
+  if (rolloff.rolls[index] !== undefined) return "You already rolled for turn order.";
+
+  let d1: number;
+  let d2: number;
+  if (state.riggedDice) {
+    ({ d1, d2 } = state.riggedDice);
+    state.riggedDice = null; // single-use override, same as a normal roll
+  } else {
+    d1 = rollDie(ctx.random);
+    d2 = rollDie(ctx.random);
+  }
+  const total = d1 + d2;
+  rolloff.rolls[index] = total;
+  state.lastRoll = total;
+  appendLog(state, `${state.players[index].name} rolled ${total} for turn order.`);
+
+  if (rolloff.contenders.every((i) => rolloff.rolls[i] !== undefined)) resolveRolloff(state);
 }
 
 export function handleRoll(ctx: ActionContext): HandlerError {
