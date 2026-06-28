@@ -39,7 +39,10 @@ export default function BoardSpace({
         background: isCorner ? "#efe6cd" : "#fbf6e6",
         border: "1px solid rgba(0,0,0,.28)", borderRadius: 4,
         display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: isCorner ? "center" : "flex-start",
+        // Ownable spaces (prop/rail/util) stack a band + name + price from the top;
+        // every other space (corners and the colorless chance/chest/tax cards) has
+        // only an icon + name, so center it on the card.
+        justifyContent: isOwnable(space.t) ? "flex-start" : "center",
         padding: 2, overflow: "hidden", minWidth: 0, minHeight: 0, transformStyle: "preserve-3d",
       }}
     >
