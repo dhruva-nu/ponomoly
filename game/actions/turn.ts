@@ -139,7 +139,9 @@ export function handlePass(ctx: ActionContext): HandlerError {
   const position = state.pendingBuy;
   state.pendingBuy = null;
   appendLog(state, `${state.players[state.turn].name} declined ${BOARD[position].name}.`);
-  enqueueAuctions(state, [position], ctx.now); // a declined property goes to auction
+  // A declined property goes to auction, but the decliner is barred from it —
+  // they can't grab at a discount what they just refused at the asking price.
+  enqueueAuctions(state, [position], ctx.now, state.turn);
 }
 
 export function handleEndTurn(ctx: ActionContext): HandlerError {
