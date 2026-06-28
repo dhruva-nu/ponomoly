@@ -40,3 +40,7 @@ export const AUCTION_BID_EXTENSION_MS = 10_000;
 
 /** Smallest amount a new bid must exceed the standing high bid by. */
 export const AUCTION_MIN_INCREMENT = 10;
+
+/** Pause after the deciding roll-off roll lands before play begins (ms), so
+ *  everyone sees who won the turn order before jumping into the game. */
+export const ROLLOFF_START_DELAY_MS = 4_000;

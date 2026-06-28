@@ -24,6 +24,8 @@ export default function RolloffModal({
 
   const amContender = rolloff.contenders.includes(myIndex);
   const haveRolled = rolloff.rolls[myIndex] !== undefined;
+  const decided = rolloff.winner !== undefined;
+  const winnerName = decided ? state.players[rolloff.winner!]?.name : null;
 
   return (
     <Modal accent={COLOR.gold} width={340} zIndex={60}>
@@ -36,13 +38,16 @@ export default function RolloffModal({
           Roll for turn order
         </div>
         <div style={{ fontSize: 13, color: COLOR.muted, marginTop: 6 }}>
-          Highest roll starts; play then goes clockwise.
+          {decided
+            ? `${winnerName} starts — play goes clockwise.`
+            : "Highest roll starts; play then goes clockwise."}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "18px 2px 4px" }}>
           {state.players.map((player, index) => {
             const inRound = rolloff.contenders.includes(index);
             const roll = rolloff.rolls[index];
+            const isWinner = decided && rolloff.winner === index;
             return (
               <div
                 key={player.id}
@@ -53,9 +58,13 @@ export default function RolloffModal({
                   gap: 10,
                   padding: "8px 12px",
                   borderRadius: 10,
-                  background: inRound ? "rgba(216,163,42,.10)" : "rgba(0,0,0,.04)",
-                  border: `1px solid ${inRound ? COLOR.gold + "44" : "transparent"}`,
-                  opacity: inRound ? 1 : 0.5,
+                  background: isWinner
+                    ? "rgba(216,163,42,.22)"
+                    : inRound
+                      ? "rgba(216,163,42,.10)"
+                      : "rgba(0,0,0,.04)",
+                  border: `1px solid ${isWinner ? COLOR.gold : inRound ? COLOR.gold + "44" : "transparent"}`,
+                  opacity: decided ? (isWinner ? 1 : 0.5) : inRound ? 1 : 0.5,
                 }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -71,6 +80,7 @@ export default function RolloffModal({
                   >
                     {player.name}
                   </span>
+                  {isWinner && <span style={{ fontSize: 14 }}>👑</span>}
                 </span>
                 <span
                   className="font-display"
@@ -89,7 +99,11 @@ export default function RolloffModal({
         </div>
 
         <div style={{ marginTop: 16 }}>
-          {amContender && !haveRolled ? (
+          {decided ? (
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.gold }}>
+              🎲 {winnerName} starts — beginning the game…
+            </div>
+          ) : amContender && !haveRolled ? (
             <PrimaryButton onClick={() => send({ type: "rollForOrder" })} gradient={GRADIENT.accept}>
               Roll the dice
             </PrimaryButton>

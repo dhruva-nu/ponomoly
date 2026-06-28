@@ -1,6 +1,6 @@
 import { applyAction } from "@game/logic";
 import { createInitialState } from "@game/state";
-import { ADMIN_PASSWORD } from "@game/constants";
+import { ADMIN_PASSWORD, ROLLOFF_START_DELAY_MS } from "@game/constants";
 import type { RandomSource } from "@game/rng";
 import type { AdminCmd, ClientAction, GameState } from "@game/types";
 
@@ -56,7 +56,8 @@ export function seatPlayers(names: string[]): GameDriver {
 
 /** Seat players, start the game, and run the opening roll-off so seat 0 rolls
  *  highest and takes the first turn — keeping the deterministic "player 0 starts"
- *  setup the rest of the suite relies on. */
+ *  setup the rest of the suite relies on. Advances past the post-roll-off reveal
+ *  pause so the room lands in the `playing` phase. */
 export function startedGame(names: string[]): GameDriver {
   const driver = seatPlayers(names);
   driver.apply(names[0], { type: "start" }); // lobby -> rolloff
@@ -64,5 +65,10 @@ export function startedGame(names: string[]): GameDriver {
     driver.admin({ kind: "forceDice", d1: 6, d2: i === 0 ? 6 : 1 }); // seat 0: 12, others: 7
     driver.apply(name, { type: "rollForOrder" });
   });
+  // Reveal pause elapses -> the room alarm begins play. Rewind the virtual
+  // clock to 0 afterwards: the roll-off is fully settled, so nothing references
+  // these timestamps anymore, and downstream auction timing stays absolute.
+  driver.advance(ROLLOFF_START_DELAY_MS).apply("server", { type: "tickRolloff" });
+  driver.clock = 0;
   return driver;
 }

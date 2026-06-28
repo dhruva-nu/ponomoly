@@ -7,6 +7,7 @@ export type ClientAction =
   | { type: "cycleToken" }
   | { type: "start" }
   | { type: "rollForOrder" }
+  | { type: "tickRolloff" }
   | { type: "roll" }
   | { type: "buy" }
   | { type: "pass" }
