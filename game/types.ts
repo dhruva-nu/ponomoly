@@ -76,7 +76,16 @@ export interface Player {
   jailCards: number;
 }
 
-export type Phase = "lobby" | "playing" | "ended";
+export type Phase = "lobby" | "rolloff" | "playing" | "ended";
+
+/** Opening roll-off held between lobby and play: every seated player rolls once
+ *  and the highest goes first. On a tie at the top, only the tied players re-roll. */
+export interface RolloffState {
+  /** player index -> their roll this round (absent until they have rolled) */
+  rolls: Record<number, number>;
+  /** player indices still competing to start; narrows to the tied set on a tie */
+  contenders: number[];
+}
 
 export interface Dice {
   d1: number;
@@ -107,14 +116,16 @@ export interface TradeRentRule {
   mode: RentRuleMode;
   /** percent (0–100) when mode is `percent`; flat dollars when `fixed`; unused for `waive` */
   value: number;
-  /** how many of the beneficiary's own upcoming turns the clause stays in force */
+  /** how many times the clause can be used — i.e. how many future landings by the
+   *  beneficiary on a covered property of the landlord it discounts before lapsing */
   turns: number;
   /** which of the landlord's properties the clause covers */
   scope: RentRuleScope;
 }
 
 /** A live rent agreement: `payer` owes reduced rent to `payee` for `turnsLeft`
- *  more of the payer's turns. Instantiated from a `TradeRentRule` on acceptance. */
+ *  more landings on a covered property. Instantiated from a `TradeRentRule` on
+ *  acceptance; consumed by use (a covered rent landing), not by turns elapsing. */
 export interface RentAgreement {
   /** player index who enjoys the reduced rent */
   payer: number;
@@ -124,7 +135,7 @@ export interface RentAgreement {
   value: number;
   /** which of the payee's properties the discount covers */
   scope: RentRuleScope;
-  /** the payer's remaining turns before the agreement lapses */
+  /** remaining uses: covered rent landings by the payer before the clause lapses */
   turnsLeft: number;
 }
 
@@ -183,6 +194,8 @@ export interface GameState {
   phase: Phase;
   /** id of the player who created the room (lobby host) */
   hostId: string | null;
+  /** live opening roll-off during the `rolloff` phase, else null */
+  rolloff: RolloffState | null;
   players: Player[];
   /** index into players[] whose turn it is */
   turn: number;

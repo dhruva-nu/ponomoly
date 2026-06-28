@@ -1,15 +1,13 @@
 "use client";
 
 import type { ClientAction } from "@game/types";
-import { BOARD, propRentFor, railRentFor } from "@game/board";
+import { BOARD, propRentFor, railRentFor, TYPE_LABEL } from "@game/board";
 import Modal from "@/components/ui/Modal";
 import PropertyHeader from "@/components/ui/PropertyHeader";
 import { Stat, StatFrame } from "@/components/ui/StatFrame";
 import { GhostButton, PrimaryButton } from "@/components/ui/Buttons";
 import { COLOR, GRADIENT, eyebrowStyle } from "@/components/ui/theme";
 import { rentRows } from "@/components/board/rentRows";
-
-const TYPE_LABEL: Record<string, string> = { prop: "Property", rail: "Station", util: "Utility" };
 
 function rentSummary(spaceIndex: number, spaceType: string): string {
   if (spaceType === "prop") return `$${propRentFor(spaceIndex, 0, false)}`;

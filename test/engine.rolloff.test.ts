@@ -1,0 +1,79 @@
+import { describe, expect, it } from "vitest";
+import { seatPlayers } from "./support/driver";
+
+/** Seat names and run the host's start, landing in the roll-off phase. */
+function rolloffGame(names: string[]) {
+  const game = seatPlayers(names);
+  game.apply(names[0], { type: "start" });
+  return game;
+}
+
+describe("opening roll-off", () => {
+  it("enters the roll-off when the host starts, with everyone contending", () => {
+    const game = rolloffGame(["Ada", "Bo", "Cy"]);
+    expect(game.state.phase).toBe("rolloff");
+    expect(game.state.rolloff).toMatchObject({ rolls: {}, contenders: [0, 1, 2] });
+    expect(game.state.log.some((l) => l.toLowerCase().includes("roll for turn order"))).toBe(true);
+  });
+
+  it("each seated player rolls once and the highest roller starts", () => {
+    const game = rolloffGame(["Ada", "Bo", "Cy"]);
+    game.admin({ kind: "forceDice", d1: 1, d2: 1 }); // Ada: 2
+    game.apply("Ada", { type: "rollForOrder" });
+    game.admin({ kind: "forceDice", d1: 6, d2: 5 }); // Bo: 11 (highest)
+    game.apply("Bo", { type: "rollForOrder" });
+    expect(game.state.phase).toBe("rolloff"); // Cy hasn't rolled yet
+    game.admin({ kind: "forceDice", d1: 3, d2: 2 }); // Cy: 5
+    game.apply("Cy", { type: "rollForOrder" });
+
+    expect(game.state.phase).toBe("playing");
+    expect(game.state.turn).toBe(1); // Bo had the highest roll
+    expect(game.state.rolloff).toBeNull();
+    expect(game.state.log.some((l) => l.includes("Bo rolled highest"))).toBe(true);
+  });
+
+  it("rejects rolling twice and rolling out of turn-order phase", () => {
+    const game = rolloffGame(["Ada", "Bo"]);
+    game.admin({ kind: "forceDice", d1: 2, d2: 2 });
+    game.apply("Ada", { type: "rollForOrder" });
+    expect(game.apply("Ada", { type: "rollForOrder" }).error).toBe("You already rolled for turn order.");
+    expect(game.apply("ghost", { type: "rollForOrder" }).error).toBe("Not in this game.");
+
+    // A normal roll isn't allowed until play actually begins.
+    expect(game.apply("Bo", { type: "roll" }).error).toBe("Game not in progress.");
+  });
+
+  it("re-rolls only among the tied leaders until the tie breaks", () => {
+    const game = rolloffGame(["Ada", "Bo", "Cy"]);
+    // Round 1: Ada and Bo tie at 10, Cy trails at 4.
+    game.admin({ kind: "forceDice", d1: 5, d2: 5 });
+    game.apply("Ada", { type: "rollForOrder" });
+    game.admin({ kind: "forceDice", d1: 5, d2: 5 });
+    game.apply("Bo", { type: "rollForOrder" });
+    game.admin({ kind: "forceDice", d1: 2, d2: 2 });
+    game.apply("Cy", { type: "rollForOrder" });
+
+    // Cy is eliminated from the roll-off; only the tied pair rolls again.
+    expect(game.state.phase).toBe("rolloff");
+    expect(game.state.rolloff?.contenders).toEqual([0, 1]);
+    expect(game.apply("Cy", { type: "rollForOrder" }).error).toBe("You're not in the roll-off.");
+
+    // Round 2: Ada beats Bo and starts.
+    game.admin({ kind: "forceDice", d1: 6, d2: 6 });
+    game.apply("Ada", { type: "rollForOrder" });
+    game.admin({ kind: "forceDice", d1: 1, d2: 1 });
+    game.apply("Bo", { type: "rollForOrder" });
+
+    expect(game.state.phase).toBe("playing");
+    expect(game.state.turn).toBe(0);
+  });
+
+  it("clears any roll-off state on reset", () => {
+    const game = rolloffGame(["Ada", "Bo"]);
+    game.admin({ kind: "forceDice", d1: 3, d2: 3 });
+    game.apply("Ada", { type: "rollForOrder" });
+    game.apply("Ada", { type: "reset" });
+    expect(game.state.phase).toBe("lobby");
+    expect(game.state.rolloff).toBeNull();
+  });
+});

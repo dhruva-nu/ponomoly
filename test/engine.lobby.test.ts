@@ -74,7 +74,7 @@ describe("start and reset", () => {
     const game = seatPlayers(["Ada", "Bo"]);
     expect(game.apply("Bo", { type: "start" }).error).toBe("Only the host can start.");
     game.apply("Ada", { type: "start" });
-    expect(game.state.phase).toBe("playing");
+    expect(game.state.phase).toBe("rolloff"); // start opens the opening roll-off
     expect(game.apply("Ada", { type: "start" }).error).toBe("Already started.");
   });
 

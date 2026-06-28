@@ -54,9 +54,15 @@ export function seatPlayers(names: string[]): GameDriver {
   return driver;
 }
 
-/** Seat players and start the game (first joiner is host). */
+/** Seat players, start the game, and run the opening roll-off so seat 0 rolls
+ *  highest and takes the first turn — keeping the deterministic "player 0 starts"
+ *  setup the rest of the suite relies on. */
 export function startedGame(names: string[]): GameDriver {
   const driver = seatPlayers(names);
-  driver.apply(names[0], { type: "start" });
+  driver.apply(names[0], { type: "start" }); // lobby -> rolloff
+  names.forEach((name, i) => {
+    driver.admin({ kind: "forceDice", d1: 6, d2: i === 0 ? 6 : 1 }); // seat 0: 12, others: 7
+    driver.apply(name, { type: "rollForOrder" });
+  });
   return driver;
 }

@@ -5,7 +5,7 @@ import type { GameState, Player } from "@game/types";
 import { BOARD, isOwnable } from "@game/board";
 import BoardSpace from "./BoardSpace";
 import CenterHub from "./CenterHub";
-import PlayerSeat, { SEAT_SLOTS } from "./PlayerSeat";
+import PlayerSeat from "./PlayerSeat";
 import PropertyTip from "./PropertyTip";
 
 const HOVER_DELAY = 1000; // ms before the info tooltip appears
@@ -23,6 +23,20 @@ export default function Board({ state, youIndex = -1 }: { state: GameState; youI
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // After hovering a player seat for HOVER_DELAY, dim every tile not owned by
+  // that player so their holdings stand out. null = no player highlighted.
+  const [highlightOwner, setHighlightOwner] = useState<number | null>(null);
+  const seatHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startSeatHover = (playerIndex: number) => {
+    if (seatHoverTimer.current) clearTimeout(seatHoverTimer.current);
+    seatHoverTimer.current = setTimeout(() => setHighlightOwner(playerIndex), HOVER_DELAY);
+  };
+  const endSeatHover = () => {
+    if (seatHoverTimer.current) clearTimeout(seatHoverTimer.current);
+    setHighlightOwner(null);
+  };
+
   const startHover = (spaceIndex: number, event: ReactMouseEvent) => {
     if (!isOwnable(BOARD[spaceIndex].t)) return;
     const { clientX: x, clientY: y } = event;
@@ -39,7 +53,7 @@ export default function Board({ state, youIndex = -1 }: { state: GameState; youI
   };
 
   return (
-    <div style={{ position: "relative", padding: "78px 150px" }}>
+    <div style={{ position: "relative", padding: "78px 150px 78px 188px" }}>
       <div style={{
         width: "min(88vh, 820px)", aspectRatio: "1", display: "grid",
         gridTemplateColumns: "repeat(11,1fr)", gridTemplateRows: "repeat(11,1fr)", gap: 2,
@@ -49,14 +63,39 @@ export default function Board({ state, youIndex = -1 }: { state: GameState; youI
         transform: "perspective(1500px) rotateX(34deg)", transformStyle: "preserve-3d", flexShrink: 0,
       }}>
         {BOARD.map((space) => (
-          <BoardSpace key={space.idx} space={space} state={state} onHover={startHover} onHoverMove={moveHover} onHoverEnd={endHover} />
+          <BoardSpace
+            key={space.idx}
+            space={space}
+            state={state}
+            dimmed={highlightOwner !== null && state.owners[space.idx] !== highlightOwner}
+            onHover={startHover}
+            onHoverMove={moveHover}
+            onHoverEnd={endHover}
+          />
         ))}
         <CenterHub currentPlayer={currentPlayer} />
       </div>
 
-      {state.players.map((player, index) => (
-        <PlayerSeat key={player.id} player={player} active={index === state.turn} slot={SEAT_SLOTS[index]} />
-      ))}
+      {/* All still-in-play players stacked in a left-side column, kept in player
+          order (bankrupt players are gone per #24). `index` keeps the original
+          seat so turn highlighting tracks the right player. */}
+      <div style={{
+        position: "absolute", left: -80, top: "50%", transform: "translateY(-50%)",
+        display: "flex", flexDirection: "column", gap: 10,
+      }}>
+        {state.players
+          .map((player, index) => ({ player, index }))
+          .filter(({ player }) => !player.bankrupt)
+          .map(({ player, index }) => (
+            <PlayerSeat
+              key={player.id}
+              player={player}
+              active={index === state.turn}
+              onHoverStart={() => startSeatHover(index)}
+              onHoverEnd={endSeatHover}
+            />
+          ))}
+      </div>
 
       {tooltip && <PropertyTip spaceIndex={tooltip.spaceIndex} x={tooltip.x} y={tooltip.y} state={state} youIndex={youIndex} />}
     </div>

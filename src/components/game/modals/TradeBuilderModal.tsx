@@ -112,7 +112,7 @@ export default function TradeBuilderModal({
               </button>
             </div>
             <div style={{ fontSize: 11, color: COLOR.dim, marginBottom: 8 }}>
-              Temporarily reduce the rent one side owes the other (e.g. no rent for 5 turns, or 50% off).
+              Temporarily reduce the rent one side owes the other (e.g. no rent for the next 5 visits, or 50% off).
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {rules.map((rule, i) => {
