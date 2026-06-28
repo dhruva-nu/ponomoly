@@ -39,8 +39,29 @@ export interface Card {
 
 const DECKS = cardData as Record<DeckType, Card[]>;
 
-/** Draw one card at random from the given deck. */
-export function drawCard(deck: DeckType, random: RandomSource): Card {
-  const cards = DECKS[deck];
-  return cards[Math.floor(random() * cards.length)];
+/** Build a freshly shuffled pile of indices (Fisher-Yates) for the given deck. */
+export function buildShuffledPile(deck: DeckType, random: RandomSource): number[] {
+  const len = DECKS[deck].length;
+  const pile = Array.from({ length: len }, (_, i) => i);
+  for (let i = len - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [pile[i], pile[j]] = [pile[j], pile[i]];
+  }
+  return pile;
+}
+
+/** Pop the next card from the deck's draw pile stored in `GameState`.
+ *  When the pile is empty it is automatically reshuffled from the full deck,
+ *  so every card appears exactly once per cycle — no repeats until the whole
+ *  deck has been drawn. */
+export function drawCard(
+  deck: DeckType,
+  random: RandomSource,
+  piles: Record<"chance" | "chest", number[]>,
+): Card {
+  if (piles[deck].length === 0) {
+    piles[deck] = buildShuffledPile(deck, random);
+  }
+  const idx = piles[deck].shift()!;
+  return DECKS[deck][idx];
 }

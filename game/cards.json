@@ -1,26 +1,162 @@
 {
   "chance": [
-    { "text": "Pay building and loan fees of $100.", "action": "subtract", "amount": 100 },
-    { "text": "Advance to GO. Collect $200.", "action": "move", "to": 0 },
-    { "text": "Take a trip to North Station.", "action": "move", "to": 5 },
-    { "text": "Advance to Diamond Drive.", "action": "move", "to": 39 },
-    { "text": "Go back 3 spaces.", "action": "move", "by": -3 },
-    { "text": "Go directly to Jail. Do not pass GO.", "action": "gotojail" },
-    { "text": "Speeding fine. Pay $15.", "action": "subtract", "amount": 15 },
-    { "text": "Bank pays you a dividend of $50.", "action": "add", "amount": 50 },
-    { "text": "Your building loan matures. Collect $200.", "action": "add", "amount": 200 },
-    { "text": "Get Out of Jail Free.", "action": "jailFree" }
+    {
+      "text": "Pay building and loan fees of $100.",
+      "action": "subtract",
+      "amount": 100
+    },
+    {
+      "text": "Advance to GO. Collect $200.",
+      "action": "move",
+      "to": 0
+    },
+    {
+      "text": "Take a trip to Reading Railroad.",
+      "action": "move",
+      "to": 5
+    },
+    {
+      "text": "Advance to Boardwalk.",
+      "action": "move",
+      "to": 39
+    },
+    {
+      "text": "Go back 3 spaces.",
+      "action": "move",
+      "by": -3
+    },
+    {
+      "text": "Go directly to Jail. Do not pass GO.",
+      "action": "gotojail"
+    },
+    {
+      "text": "Speeding fine. Pay $15.",
+      "action": "subtract",
+      "amount": 15
+    },
+    {
+      "text": "Bank pays you a dividend of $50.",
+      "action": "add",
+      "amount": 50
+    },
+    {
+      "text": "Your building loan matures. Collect $200.",
+      "action": "add",
+      "amount": 200
+    },
+    {
+      "text": "Get Out of Jail Free.",
+      "action": "jailFree"
+    },
+    {
+      "text": "Jump on a plane to Kentucky Avenue. If you pass GO collect $200",
+      "action": "move",
+      "to": 21
+    },
+    {
+      "text": "Collect a signing bonus of $150.",
+      "action": "add",
+      "amount": 150
+    },
+    {
+      "text": "Splash out a trip to St.Charles Place.",
+      "action": "move",
+      "to": 11
+    },
+    {
+      "text": "Make a donation for street repairs.Pay $15.",
+      "action": "subtract",
+      "amount": 15
+    },
+    {
+      "text": "Buy a lollipop for $10.",
+      "action": "subtract",
+      "amount": 10
+    },
+    {
+      "text": "Your artistic style gains recognition — sell a painting for $200.",
+      "action": "add",
+      "amount": 200
+    }
   ],
   "chest": [
-    { "text": "Bank error in your favor. Collect $200.", "action": "add", "amount": 200 },
-    { "text": "Advance to GO. Collect $200.", "action": "move", "to": 0 },
-    { "text": "Doctor's fee. Pay $50.", "action": "subtract", "amount": 50 },
-    { "text": "Sale of stock. Collect $50.", "action": "add", "amount": 50 },
-    { "text": "Hospital fees. Pay $100.", "action": "subtract", "amount": 100 },
-    { "text": "Go directly to Jail. Do not pass GO.", "action": "gotojail" },
-    { "text": "Income tax refund. Collect $20.", "action": "add", "amount": 20 },
-    { "text": "Pay a fine of $75.", "action": "subtract", "amount": 75 },
-    { "text": "Holiday fund matures. Collect $100.", "action": "add", "amount": 100 },
-    { "text": "Get Out of Jail Free.", "action": "jailFree" }
+    {
+      "text": "Bank error in your favor. Collect $200.",
+      "action": "add",
+      "amount": 200
+    },
+    {
+      "text": "Advance to GO. Collect $200.",
+      "action": "move",
+      "to": 0
+    },
+    {
+      "text": "Doctor's fee. Pay $50.",
+      "action": "subtract",
+      "amount": 50
+    },
+    {
+      "text": "Sale of stock. Collect $50.",
+      "action": "add",
+      "amount": 50
+    },
+    {
+      "text": "Hospital fees. Pay $100.",
+      "action": "subtract",
+      "amount": 100
+    },
+    {
+      "text": "Go directly to Jail. Do not pass GO.",
+      "action": "gotojail"
+    },
+    {
+      "text": "Income tax refund. Collect $20.",
+      "action": "add",
+      "amount": 20
+    },
+    {
+      "text": "Pay a fine of $75.",
+      "action": "subtract",
+      "amount": 75
+    },
+    {
+      "text": "Holiday fund matures. Collect $100.",
+      "action": "add",
+      "amount": 100
+    },
+    {
+      "text": "Get Out of Jail Free.",
+      "action": "jailFree"
+    },
+    {
+      "text": "Win it big in casino, Collect $100.",
+      "action": "add",
+      "amount": 100
+    },
+    {
+      "text": "Tution fees!Pay $50.",
+      "action": "subtract",
+      "amount": 50
+    },
+    {
+      "text": "You owe taxes back, pay $80",
+      "action": "subtract",
+      "amount": 80
+    },
+    {
+      "text": "You inherit $100",
+      "action": "add",
+      "amount": 100
+    },
+    {
+      "text": "You win second prize in a beauty contest, collect $10.",
+      "action": "add",
+      "amount": 10
+    },
+    {
+      "text": "Your computer network hits with a virus, pay $150",
+      "action": "subtract",
+      "amount": 150
+    }
   ]
 }
