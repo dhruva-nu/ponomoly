@@ -6,7 +6,7 @@ import { isOwnable } from "@game/board";
 
 const CORNER_TYPES = new Set(["go", "jail", "parking", "gotojail"]);
 
-/** A single cell on the board grid: band, glyph, name, price, owner dot, tokens. */
+/** A single cell on the board grid: band, glyph, name, price, owner border, tokens. */
 export default function BoardSpace({
   space,
   state,
@@ -23,8 +23,7 @@ export default function BoardSpace({
   const [row, col] = space.pos;
   const isCorner = CORNER_TYPES.has(space.t);
   const owner = state.owners[space.idx];
-  const ownerPlayer = owner !== undefined && owner !== null ? state.players[owner] : undefined;
-  const ownerColor = ownerPlayer ? ownerPlayer.color : null;
+  const ownerColor = owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].color : null;
   const occupants = state.players.filter((player) => player.position === space.idx);
   const level = state.buildings[space.idx] || 0;
   const priceLabel = isOwnable(space.t) && space.price ? `$${space.price}` : "";
@@ -39,6 +38,10 @@ export default function BoardSpace({
         cursor: isOwnable(space.t) ? "help" : "default",
         background: isCorner ? "#efe6cd" : "#fbf6e6",
         border: "1px solid rgba(0,0,0,.28)", borderRadius: 4,
+        // An inset ring in the owner's color marks who owns the space (replacing
+        // the old corner dot). Drawn inward via box-shadow so it adds no layout
+        // shift and unowned tiles keep the plain neutral border.
+        boxShadow: ownerColor ? `inset 0 0 0 3px ${ownerColor}` : undefined,
         display: "flex", flexDirection: "column", alignItems: "center",
         // Ownable spaces (prop/rail/util) stack a band + name + price from the top;
         // every other space (corners and the colorless chance/chest/tax cards) has
@@ -67,23 +70,6 @@ export default function BoardSpace({
       </div>
       {priceLabel && (
         <div style={{ fontSize: "clamp(6px, 1.05vmin, 10px)", fontWeight: 700, color: "#1f7a44", marginTop: 2, fontFamily: "var(--font-orbitron), sans-serif", letterSpacing: 0.3 }}>{priceLabel}</div>
-      )}
-      {/* Owner badge: the owner's token in their color, matching their pawn so the
-          tile clearly reads as "owned by this player". */}
-      {ownerPlayer && ownerColor && (
-        <div
-          title={`Owned by ${ownerPlayer.name}`}
-          style={{
-            position: "absolute", top: 2, right: 2, minWidth: 13, height: 13, padding: "0 2px",
-            borderRadius: 4, background: "linear-gradient(180deg, #fffdf6, #efe6cd)",
-            border: `1.5px solid ${ownerColor}`, color: ownerColor,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 9, fontWeight: 800, lineHeight: 1, boxShadow: "0 1px 2px rgba(0,0,0,.35)",
-            fontFamily: "var(--font-orbitron), sans-serif",
-          }}
-        >
-          {ownerPlayer.token}
-        </div>
       )}
       {state.mortgaged[space.idx] && (
         <div style={{ position: "absolute", top: 2, left: 2, fontSize: 8, fontWeight: 800, letterSpacing: 0.5, color: "#b85a12", background: "rgba(255,243,224,.92)", border: "1px solid rgba(224,123,37,.7)", borderRadius: 4, padding: "0 3px", lineHeight: 1.4 }}>
