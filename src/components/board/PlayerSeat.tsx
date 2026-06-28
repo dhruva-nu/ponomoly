@@ -1,25 +1,26 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import type { Player } from "@game/types";
 
-/** Up to six seat anchors positioned around the tilted board. */
-export const SEAT_SLOTS: CSSProperties[] = [
-  { bottom: 4, left: "50%", transform: "translateX(-50%)" },
-  { top: 4, left: "50%", transform: "translateX(-50%)" },
-  { left: 4, top: "50%", transform: "translateY(-50%)" },
-  { right: 4, top: "50%", transform: "translateY(-50%)" },
-  { top: 4, left: 4 },
-  { bottom: 4, right: 4 },
-];
-
-/** A player's status card anchored to one of the board's edges. Bankrupt players
- *  are filtered out before render (see Board.tsx), so this only ever shows
- *  still-in-play players. */
-export default function PlayerSeat({ player, active, slot }: { player: Player; active: boolean; slot: CSSProperties }) {
+/** A player's status card. Stacked into a left-side column by Board.tsx in
+ *  player order. Bankrupt players are filtered out before render, so this only
+ *  ever shows still-in-play players. */
+export default function PlayerSeat({
+  player,
+  active,
+  onHoverStart,
+  onHoverEnd,
+}: {
+  player: Player;
+  active: boolean;
+  onHoverStart?: () => void;
+  onHoverEnd?: () => void;
+}) {
   return (
-    <div style={{ position: "absolute", ...slot }}>
-      <div style={{
+    <div
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
+      style={{
         position: "relative", width: 156, display: "flex", alignItems: "center", gap: 10,
         background: active ? `linear-gradient(135deg, ${player.color}26, #fdfaf0)` : "#fbf7ea",
         border: `1px solid ${active ? player.color : "rgba(0,0,0,.18)"}`,
@@ -52,7 +53,6 @@ export default function PlayerSeat({ player, active, slot }: { player: Player; a
             Turn
           </div>
         )}
-      </div>
     </div>
   );
 }
