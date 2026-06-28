@@ -5,6 +5,7 @@ export function createInitialState(hostId: string | null = null): GameState {
   return {
     phase: "lobby",
     hostId,
+    rolloff: null,
     players: [],
     turn: 0,
     owners: {},
@@ -37,6 +38,7 @@ export function normalizeState(state: GameState): GameState {
   for (const rule of state.pendingTrade?.rules ?? []) if (!rule.scope) rule.scope = { kind: "all" };
   if (!state.rentAgreements) state.rentAgreements = [];
   for (const agreement of state.rentAgreements) if (!agreement.scope) agreement.scope = { kind: "all" };
+  if (state.rolloff === undefined) state.rolloff = null;
   if (state.pendingAuction === undefined) state.pendingAuction = null;
   if (!state.auctionQueue) state.auctionQueue = [];
   if (typeof state.doublesStreak !== "number") state.doublesStreak = 0;

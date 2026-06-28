@@ -8,6 +8,7 @@ import { COLOR, GRADIENT } from "@/components/ui/theme";
 const POLL_MS = 5000;
 const PHASE_LABEL: Record<RoomSummary["phase"], { text: string; color: string }> = {
   lobby: { text: "Lobby", color: COLOR.cyan },
+  rolloff: { text: "Roll-off", color: COLOR.gold },
   playing: { text: "In play", color: COLOR.green },
   ended: { text: "Ended", color: COLOR.dim },
 };

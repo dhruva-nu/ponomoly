@@ -6,6 +6,7 @@ export type ClientAction =
   | { type: "setName"; name: string }
   | { type: "cycleToken" }
   | { type: "start" }
+  | { type: "rollForOrder" }
   | { type: "roll" }
   | { type: "buy" }
   | { type: "pass" }
