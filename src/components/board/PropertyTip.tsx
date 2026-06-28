@@ -1,13 +1,12 @@
 "use client";
 
 import type { GameState } from "@game/types";
-import { BOARD, spaceColor } from "@game/board";
+import { BOARD, spaceColor, TYPE_LABEL } from "@game/board";
 import { rentFor } from "@game/logic";
 import { COLOR } from "@/components/ui/theme";
 import { rentRows } from "./rentRows";
 
 const TIP_WIDTH = 232;
-const TYPE_LABEL: Record<string, string> = { prop: "Property", rail: "Station", util: "Utility" };
 
 function buildLabel(spaceType: string, level: number): string | null {
   if (spaceType !== "prop") return null;

@@ -6,16 +6,18 @@ import { isOwnable } from "@game/board";
 
 const CORNER_TYPES = new Set(["go", "jail", "parking", "gotojail"]);
 
-/** A single cell on the board grid: band, glyph, name, price, owner dot, tokens. */
+/** A single cell on the board grid: band, glyph, name, price, owner border, tokens. */
 export default function BoardSpace({
   space,
   state,
+  dimmed = false,
   onHover,
   onHoverMove,
   onHoverEnd,
 }: {
   space: Space;
   state: GameState;
+  dimmed?: boolean;
   onHover: (spaceIndex: number, event: ReactMouseEvent) => void;
   onHoverMove: (event: ReactMouseEvent) => void;
   onHoverEnd: () => void;
@@ -24,7 +26,7 @@ export default function BoardSpace({
   const isCorner = CORNER_TYPES.has(space.t);
   const owner = state.owners[space.idx];
   const ownerColor = owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].color : null;
-  const occupants = state.players.filter((player) => player.position === space.idx);
+  const occupants = state.players.filter((player) => player.position === space.idx && !player.bankrupt);
   const level = state.buildings[space.idx] || 0;
   const priceLabel = isOwnable(space.t) && space.price ? `$${space.price}` : "";
 
@@ -38,16 +40,28 @@ export default function BoardSpace({
         cursor: isOwnable(space.t) ? "help" : "default",
         background: isCorner ? "#efe6cd" : "#fbf6e6",
         border: "1px solid rgba(0,0,0,.28)", borderRadius: 4,
+        // An inset ring in the owner's color marks who owns the space (replacing
+        // the old corner dot). Drawn inward via box-shadow so it adds no layout
+        // shift and unowned tiles keep the plain neutral border.
+        boxShadow: ownerColor ? `inset 0 0 0 3px ${ownerColor}` : undefined,
         display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: isCorner ? "center" : "flex-start",
+        // Ownable spaces (prop/rail/util) stack a band + name + price from the top;
+        // every other space (corners and the colorless chance/chest/tax cards) has
+        // only an icon + name, so center it on the card.
+        justifyContent: isOwnable(space.t) ? "flex-start" : "center",
         padding: 2, overflow: "hidden", minWidth: 0, minHeight: 0, transformStyle: "preserve-3d",
+        opacity: dimmed ? 0.22 : 1, transition: "opacity .2s ease",
       }}
     >
       {space.t === "prop" && (
-        <div style={{ width: "100%", height: "clamp(5px, 1.85vmin, 16px)", background: space.c, marginBottom: 3, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }} />
-      )}
-      {space.t === "prop" && level > 0 && (
-        <div style={{ fontSize: "clamp(6px, 1.05vmin, 10px)", lineHeight: 1, letterSpacing: -1, marginBottom: 2 }}>{level === 5 ? "🏨" : "🏠".repeat(level)}</div>
+        <div style={{ position: "relative", width: "100%", height: "clamp(5px, 1.85vmin, 16px)", background: space.c, marginBottom: 3, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }}>
+          {/* Houses/hotel sit on the color band, classic-Monopoly style. */}
+          {level > 0 && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "clamp(5px, 1vmin, 9px)", lineHeight: 1, letterSpacing: -1, textShadow: "0 1px 1px rgba(0,0,0,.5)" }}>
+              {level === 5 ? "🏨" : "🏠".repeat(level)}
+            </div>
+          )}
+        </div>
       )}
       {space.icon && (
         <div style={{ fontSize: isCorner ? "clamp(12px, 2.6vmin, 24px)" : "clamp(9px, 2.1vmin, 19px)", lineHeight: 1, color: isCorner ? "#c8202a" : "#2c241b", fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700 }}>
@@ -59,9 +73,6 @@ export default function BoardSpace({
       </div>
       {priceLabel && (
         <div style={{ fontSize: "clamp(6px, 1.05vmin, 10px)", fontWeight: 700, color: "#1f7a44", marginTop: 2, fontFamily: "var(--font-orbitron), sans-serif", letterSpacing: 0.3 }}>{priceLabel}</div>
-      )}
-      {ownerColor && (
-        <div style={{ position: "absolute", top: 3, right: 3, width: 10, height: 10, borderRadius: "50%", background: ownerColor, border: "1px solid rgba(0,0,0,.4)", boxShadow: "0 1px 2px rgba(0,0,0,.35)" }} />
       )}
       {state.mortgaged[space.idx] && (
         <div style={{ position: "absolute", top: 2, left: 2, fontSize: 8, fontWeight: 800, letterSpacing: 0.5, color: "#b85a12", background: "rgba(255,243,224,.92)", border: "1px solid rgba(224,123,37,.7)", borderRadius: 4, padding: "0 3px", lineHeight: 1.4 }}>

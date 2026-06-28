@@ -146,12 +146,39 @@ export const BOARD: Space[] = SPACE_BLUEPRINTS.map((space, idx) => ({
   pos: gridPositionOf(idx),
 }));
 
+/** Display label for each space type — the single source of truth for the
+ *  colorless "Station"/"Utility" namespaces (and "Property"). Import this instead
+ *  of redefining a local TYPE_LABEL in the UI. */
+export const TYPE_LABEL: Record<SpaceType, string> = {
+  go: "Go",
+  prop: "Property",
+  rail: "Station",
+  util: "Utility",
+  tax: "Tax",
+  chance: "Chance",
+  chest: "Community Chest",
+  jail: "Jail",
+  parking: "Free Parking",
+  gotojail: "Go to Jail",
+};
+
+/** Fallback band colors for the colorless ownable groups (stations / utilities,
+ *  which carry no `c`), kept here alongside the other group-color logic instead
+ *  of as inline magic hex. */
+export const GROUP_FALLBACK_COLOR: Record<"rail" | "util", string> = {
+  rail: "#8fa3c8",
+  util: "#38e0c0",
+};
+
+/** Band color for non-ownable spaces (corners, tax, cards). */
+export const DEFAULT_SPACE_COLOR = "#9fb4d8";
+
 export function spaceColor(spaceIndex: number): string {
   const space = BOARD[spaceIndex];
   if (space.t === "prop") return space.c!;
-  if (space.t === "rail") return "#8fa3c8";
-  if (space.t === "util") return "#38e0c0";
-  return "#9fb4d8";
+  if (space.t === "rail") return GROUP_FALLBACK_COLOR.rail;
+  if (space.t === "util") return GROUP_FALLBACK_COLOR.util;
+  return DEFAULT_SPACE_COLOR;
 }
 
 export const isOwnable = (spaceType: SpaceType | string): boolean =>

@@ -1,5 +1,5 @@
 import type { Auction, GameState } from "./types";
-import { BOARD, isOwnable } from "./board";
+import { BOARD, isOwnable, scopeMatchesSpace } from "./board";
 import { AUCTION_DURATION_MS, BOARD_SIZE, GO_SALARY, JAIL_INDEX } from "./constants";
 import { appendLog, solventPlayerIndices } from "./helpers";
 import { discountedRent, rentFor } from "./rent";
@@ -41,17 +41,20 @@ function removeFromPlay(state: GameState, playerIdx: number): number[] {
   return estate;
 }
 
-/** Tick down the rent agreements `playerIdx` benefits from at the end of their
- *  turn, retiring any that have run their course. */
-function expireRentAgreements(state: GameState, playerIdx: number): void {
+/** Consume the rent clauses `payer` just used by landing on landlord `payee`'s
+ *  property at `position`: every agreement between them whose scope covers that
+ *  space loses one use, and is retired once spent. Clauses are spent by use (an
+ *  actual rent landing), never merely by turns elapsing. */
+function consumeRentAgreements(state: GameState, payer: number, payee: number, position: number): void {
   if (state.rentAgreements.length === 0) return;
   state.rentAgreements = state.rentAgreements.filter((agreement) => {
-    if (agreement.payer !== playerIdx) return true;
+    if (agreement.payer !== payer || agreement.payee !== payee) return true;
+    if (!scopeMatchesSpace(agreement.scope, position)) return true;
     agreement.turnsLeft -= 1;
     if (agreement.turnsLeft > 0) return true;
-    const payer = state.players[agreement.payer]?.name ?? "A player";
-    const payee = state.players[agreement.payee]?.name ?? "another player";
-    appendLog(state, `${payer}'s rent clause on ${payee}'s properties expired.`);
+    const payerName = state.players[agreement.payer]?.name ?? "A player";
+    const payeeName = state.players[agreement.payee]?.name ?? "another player";
+    appendLog(state, `${payerName}'s rent clause on ${payeeName}'s properties is used up.`);
     return false;
   });
 }
@@ -92,34 +95,46 @@ export function eliminatePlayer(
 }
 
 /**
- * Open an auction for `pos` among every solvent player (including the one who
- * just declined) and start the countdown. Assumes no auction is already live —
- * callers route through `enqueueAuctions` to serialize.
+ * Open an auction for `pos` among every solvent player and start the countdown.
+ * `excludeIndex` drops one player from the bidder pool (the player who declined
+ * the purchase that triggered this lot — they may not buy at a discount what
+ * they just refused); pass -1 to include everyone. Assumes no auction is already
+ * live — callers route through `enqueueAuctions` to serialize.
  */
-export function openAuction(state: GameState, pos: number, now: number): void {
-  state.pendingAuction = {
+export function openAuction(state: GameState, pos: number, now: number, excludeIndex = -1): Auction {
+  const auction: Auction = {
     pos,
     highBid: 0,
     highBidder: null,
-    active: solventPlayerIndices(state),
+    active: solventPlayerIndices(state).filter((i) => i !== excludeIndex),
     endsAt: now + AUCTION_DURATION_MS,
   };
+  state.pendingAuction = auction;
   appendLog(state, `${BOARD[pos].name} goes up for auction!`);
+  return auction;
 }
 
 /** Queue one or more properties for auction and open the head if none is live.
- *  Auctions run one at a time, in order. */
-export function enqueueAuctions(state: GameState, positions: number[], now: number): void {
+ *  Auctions run one at a time, in order. `excludeIndex` only applies to the lot
+ *  opened immediately by this call (a single declined property); queued lots and
+ *  later chained lots include every solvent player. */
+export function enqueueAuctions(state: GameState, positions: number[], now: number, excludeIndex = -1): void {
   state.auctionQueue.push(...positions);
-  openNextAuction(state, now);
+  openNextAuction(state, now, excludeIndex);
 }
 
 /** Open the next queued lot, if any, when no auction is currently running. */
-export function openNextAuction(state: GameState, now: number): void {
+export function openNextAuction(state: GameState, now: number, excludeIndex = -1): void {
   if (state.pendingAuction) return;
   const next = state.auctionQueue.shift();
   if (next === undefined) return;
-  openAuction(state, next, now);
+  const auction = openAuction(state, next, now, excludeIndex);
+  // A lot with no eligible bidders (e.g. excluding the decliner leaves nobody
+  // solvent left in a 2-player game) is dead on arrival — void it and move on.
+  if (auction.active.length === 0) {
+    resolveAuction(state);
+    openNextAuction(state, now);
+  }
 }
 
 /** True once an auction has no reason to stay open: timed out, abandoned by
@@ -278,6 +293,10 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
       state.mortgaged,
     );
     const rent = discountedRent(state.rentAgreements, fullRent, turn, owner, position);
+    // A clause is consumed the moment it covers a real rent landing, whether or
+    // not it ends up being the one that lowers the bill (mortgaged sites owe no
+    // rent and so don't spend anything).
+    if (fullRent > 0) consumeRentAgreements(state, turn, owner, position);
     state.pendingRent = { pos: position, amount: rent, original: rent, to: owner, payer: turn, negotiating: false };
     if (rent < fullRent) {
       appendLog(state, `${player.name} owes $${rent} rent to ${state.players[owner].name} (was $${fullRent}, trade clause applied).`);
@@ -289,10 +308,33 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
   }
 }
 
+/** Resolve the opening roll-off once every contender has rolled this round: the
+ *  highest roller starts play; a tie at the top triggers a re-roll among only the
+ *  tied players. */
+export function resolveRolloff(state: GameState): void {
+  const rolloff = state.rolloff;
+  if (!rolloff) return;
+  const top = Math.max(...rolloff.contenders.map((i) => rolloff.rolls[i]));
+  const leaders = rolloff.contenders.filter((i) => rolloff.rolls[i] === top);
+  if (leaders.length === 1) {
+    const starter = leaders[0];
+    state.rolloff = null;
+    state.phase = "playing";
+    state.turn = starter;
+    state.dice = { d1: 1, d2: 1, rolled: false };
+    appendLog(state, `${state.players[starter].name} rolled highest (${top}) and starts.`);
+    return;
+  }
+  // Tie at the top — only the tied players roll again.
+  const names = leaders.map((i) => state.players[i].name).join(", ");
+  state.rolloff = { rolls: {}, contenders: leaders };
+  appendLog(state, `Tie at ${top} between ${names} — roll again.`);
+}
+
 /** Hand the turn to the next solvent player, or end the game if only one remains. */
 export function advanceTurn(state: GameState): void {
-  // The player whose turn is ending spends one turn of any clauses they benefit from.
-  expireRentAgreements(state, state.turn);
+  // Rent clauses are spent by use (landing on a covered space), not by turns
+  // elapsing — see consumeRentAgreements — so nothing decrements here.
   const survivors = solventPlayerIndices(state);
   if (survivors.length <= 1) {
     state.phase = "ended";

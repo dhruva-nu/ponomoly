@@ -45,7 +45,7 @@ export function PropPickRow({
 export function tradeRuleText(rule: TradeRentRule, fromName: string, toName: string): string {
   const payer = rule.beneficiary === "from" ? fromName : toName;
   const payee = rule.beneficiary === "from" ? toName : fromName;
-  const span = `for ${rule.turns} ${rule.turns === 1 ? "turn" : "turns"}`;
+  const span = `for the next ${rule.turns} ${rule.turns === 1 ? "visit" : "visits"}`;
   const where = rentScopeSuffix(rule.scope);
   if (rule.mode === "waive") return `${payer} pays no rent to ${payee}${where} ${span}`;
   if (rule.mode === "percent") return `${payer} pays ${rule.value}% rent to ${payee}${where} ${span}`;
@@ -176,9 +176,9 @@ export function RentRuleRow({
         value={rule.turns}
         onChange={(e) => onChange({ ...rule, turns: Math.max(1, Math.round(Number(e.target.value)) || 1) })}
         style={ruleNumber}
-        aria-label="Turns the clause lasts"
+        aria-label="Visits the clause lasts"
       />
-      <span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 600 }}>turns</span>
+      <span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 600 }}>visits</span>
       <button
         onClick={onRemove}
         style={{

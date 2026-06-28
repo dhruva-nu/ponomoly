@@ -50,6 +50,7 @@ export function handleBuild(ctx: ActionContext, action: Of<"build">): HandlerErr
 
   const group = colorGroup(position);
   if (!ownsWholeGroup(group, state.owners, index)) return "You must own the whole color set to build.";
+  if (group.some((g) => state.mortgaged[g])) return "Lift all mortgages in this color set before building.";
 
   const level = state.buildings[position] || 0;
   if (level >= 5) return "That property already has a hotel.";

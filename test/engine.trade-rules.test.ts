@@ -121,32 +121,44 @@ describe("custom rent clauses — scoping", () => {
   });
 });
 
-describe("custom rent clauses — expiry & cleanup", () => {
-  it("counts down over the beneficiary's own turns and then lapses", () => {
-    // Each player owns the spaces they land on, so turns end cleanly (no buy/rent).
+describe("custom rent clauses — consumption & cleanup", () => {
+  it("is spent by landing on a covered space, not by turns elapsing", () => {
+    // Bo (1) owns spaces 6 and 9; Ada (0) owns 3 for a clean idle turn. A 2-use
+    // board-wide waiver lets Ada skip rent on Bo's holdings twice. Every roll is
+    // a non-double so each turn ends without a bonus roll.
     const game = startedGame(["Ada", "Bo"]);
-    game.admin({ kind: "setOwner", pos: 3, owner: 0 }); // Ada
-    game.admin({ kind: "setOwner", pos: 9, owner: 0 }); // Ada
-    game.admin({ kind: "setOwner", pos: 8, owner: 1 }); // Bo
+    game.admin({ kind: "setOwner", pos: 6, owner: 1 });
+    game.admin({ kind: "setOwner", pos: 9, owner: 1 });
+    game.admin({ kind: "setOwner", pos: 3, owner: 0 });
     game.apply("Ada", { type: "proposeTrade", to: 1, offerProps: [], requestProps: [], offerCash: 0, requestCash: 0, rules: [rule({ mode: "waive", turns: 2 })] });
     game.apply("Bo", { type: "respondTrade", accept: true });
     expect(game.state.rentAgreements[0].turnsLeft).toBe(2);
 
-    // Ada (pos 0 -> 3, her own) ends her turn -> one turn consumed.
-    game.rigRoll("Ada", 1, 2);
+    // Ada takes a whole turn WITHOUT landing on a covered space -> clause intact.
+    game.rigRoll("Ada", 2, 1); // 0 -> 3 (her own)
     game.apply("Ada", { type: "endTurn" });
-    expect(game.state.rentAgreements[0].turnsLeft).toBe(1);
+    expect(game.state.rentAgreements[0].turnsLeft).toBe(2);
 
-    // Bo (pos 0 -> 8, his own) ending his turn does not touch Ada's clause.
-    game.rigRoll("Bo", 5, 3);
+    // Bo's turn never touches Ada's clause either.
+    game.rigRoll("Bo", 2, 4); // 0 -> 6 (his own)
     game.apply("Bo", { type: "endTurn" });
-    expect(game.state.rentAgreements[0].turnsLeft).toBe(1);
+    expect(game.state.rentAgreements[0].turnsLeft).toBe(2);
 
-    // Ada (pos 3 -> 9, her own) ends a second turn -> clause expires and is removed.
-    game.rigRoll("Ada", 1, 5);
+    // Ada lands on Bo's space 6 -> rent waived AND one use spent.
+    game.rigRoll("Ada", 1, 2); // 3 -> 6 (covered)
+    expect(game.state.pendingRent?.amount).toBe(0);
+    expect(game.state.rentAgreements[0].turnsLeft).toBe(1);
+    game.apply("Ada", { type: "payRent" });
     game.apply("Ada", { type: "endTurn" });
+
+    game.rigRoll("Bo", 1, 2); // 6 -> 9 (his own)
+    game.apply("Bo", { type: "endTurn" });
+
+    // Ada lands on a covered space a second time -> last use spent, clause retired.
+    game.rigRoll("Ada", 1, 2); // 6 -> 9 (covered)
+    expect(game.state.pendingRent?.amount).toBe(0);
     expect(game.state.rentAgreements).toHaveLength(0);
-    expect(game.state.log.some((line) => line.includes("expired"))).toBe(true);
+    expect(game.state.log.some((line) => line.includes("used up"))).toBe(true);
   });
 
   it("drops agreements when a party leaves the game", () => {
