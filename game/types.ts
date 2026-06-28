@@ -85,6 +85,12 @@ export interface RolloffState {
   rolls: Record<number, number>;
   /** player indices still competing to start; narrows to the tied set on a tie */
   contenders: number[];
+  /** decided starter, set once a single highest roller emerges; play begins at
+   *  `startsAt`. Absent while contenders are still rolling or a tie re-roll pends. */
+  winner?: number;
+  /** ms timestamp when play begins — a brief reveal pause after the deciding
+   *  roll so everyone sees the result before the game starts. Set with `winner`. */
+  startsAt?: number;
 }
 
 export interface Dice {

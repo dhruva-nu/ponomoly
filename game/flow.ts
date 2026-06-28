@@ -1,6 +1,6 @@
 import type { Auction, GameState } from "./types";
 import { BOARD, isOwnable, scopeMatchesSpace } from "./board";
-import { AUCTION_DURATION_MS, BOARD_SIZE, GO_SALARY, JAIL_INDEX } from "./constants";
+import { AUCTION_DURATION_MS, BOARD_SIZE, GO_SALARY, JAIL_INDEX, ROLLOFF_START_DELAY_MS } from "./constants";
 import { appendLog, solventPlayerIndices } from "./helpers";
 import { discountedRent, rentFor } from "./rent";
 import { type Card, type DeckType, drawCard, type RandomSource } from "./rng";
@@ -310,18 +310,18 @@ function resolveOwnableLanding(state: GameState, turn: number): void {
 
 /** Resolve the opening roll-off once every contender has rolled this round: the
  *  highest roller starts play; a tie at the top triggers a re-roll among only the
- *  tied players. */
-export function resolveRolloff(state: GameState): void {
+ *  tied players. The deciding roll doesn't begin play immediately — it marks the
+ *  winner and a short reveal pause (`startsAt`), after which {@link
+ *  settleRolloffIfReady} flips the room into play (driven by the room alarm). */
+export function resolveRolloff(state: GameState, now: number): void {
   const rolloff = state.rolloff;
   if (!rolloff) return;
   const top = Math.max(...rolloff.contenders.map((i) => rolloff.rolls[i]));
   const leaders = rolloff.contenders.filter((i) => rolloff.rolls[i] === top);
   if (leaders.length === 1) {
     const starter = leaders[0];
-    state.rolloff = null;
-    state.phase = "playing";
-    state.turn = starter;
-    state.dice = { d1: 1, d2: 1, rolled: false };
+    rolloff.winner = starter;
+    rolloff.startsAt = now + ROLLOFF_START_DELAY_MS;
     appendLog(state, `${state.players[starter].name} rolled highest (${top}) and starts.`);
     return;
   }
@@ -329,6 +329,21 @@ export function resolveRolloff(state: GameState): void {
   const names = leaders.map((i) => state.players[i].name).join(", ");
   state.rolloff = { rolls: {}, contenders: leaders };
   appendLog(state, `Tie at ${top} between ${names} — roll again.`);
+}
+
+/** Begin play once the post-roll-off reveal pause has elapsed. Idempotent and
+ *  safe to call any time: a no-op until a winner is decided and `startsAt` has
+ *  passed. Returns true once it has handed the turn to the winner. */
+export function settleRolloffIfReady(state: GameState, now: number): boolean {
+  const rolloff = state.rolloff;
+  if (!rolloff || rolloff.winner === undefined || rolloff.startsAt === undefined) return false;
+  if (now < rolloff.startsAt) return false;
+  const starter = rolloff.winner;
+  state.rolloff = null;
+  state.phase = "playing";
+  state.turn = starter;
+  state.dice = { d1: 1, d2: 1, rolled: false };
+  return true;
 }
 
 /** Hand the turn to the next solvent player, or end the game if only one remains. */

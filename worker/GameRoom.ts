@@ -37,9 +37,9 @@ export class GameRoom extends DurableObject<Env> {
       if (saved) {
         // Backfill fields added after this room was last persisted.
         this.state = normalizeState(saved);
-        // An auction may have been mid-flight when the room slept — re-arm its
-        // alarm (it fires immediately if the deadline already passed).
-        await this.syncAuctionAlarm();
+        // An auction or roll-off reveal may have been mid-flight when the room
+        // slept — re-arm the alarm (it fires immediately if already past due).
+        await this.syncAlarm();
       }
     });
   }
@@ -134,7 +134,7 @@ export class GameRoom extends DurableObject<Env> {
     await this.save();
     this.broadcast();
     await this.report();
-    await this.syncAuctionAlarm();
+    await this.syncAlarm();
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
@@ -161,28 +161,36 @@ export class GameRoom extends DurableObject<Env> {
     await this.report();
   }
 
-  /** Fires when an auction's deadline arrives: settle it and broadcast. */
+  /** Fires when a time-driven deadline arrives: settle the auction and/or begin
+   *  play after the roll-off reveal pause, then broadcast. */
   async alarm(): Promise<void> {
-    if (!this.state.pendingAuction) return;
-    const { state } = applyAction(this.state, "server", { type: "tickAuction" });
-    this.state = state;
+    if (this.state.pendingAuction) {
+      this.state = applyAction(this.state, "server", { type: "tickAuction" }).state;
+    }
+    if (this.state.rolloff?.startsAt !== undefined) {
+      this.state = applyAction(this.state, "server", { type: "tickRolloff" }).state;
+    }
     await this.save();
     this.broadcast();
     await this.report();
-    // A bid at the buzzer can extend the deadline — re-arm for the new one.
-    await this.syncAuctionAlarm();
+    // A bid at the buzzer can extend the deadline — re-arm for whatever's next.
+    await this.syncAlarm();
   }
 
   private async save(): Promise<void> {
     await this.ctx.storage.put(STORAGE_KEY, this.state);
   }
 
-  /** Keep the room alarm aligned with the live auction deadline (the alarm is
-   *  what closes an auction nobody else acts on). Cleared when none is running. */
-  private async syncAuctionAlarm(): Promise<void> {
-    const auction = this.state.pendingAuction;
-    if (auction) {
-      await this.ctx.storage.setAlarm(auction.endsAt);
+  /** Keep the room alarm aligned with the next time-driven deadline: a live
+   *  auction's close (nobody else may act on it) or the post-roll-off reveal
+   *  pause before play begins. Armed to whichever comes first; cleared when
+   *  neither is pending. */
+  private async syncAlarm(): Promise<void> {
+    const deadlines: number[] = [];
+    if (this.state.pendingAuction) deadlines.push(this.state.pendingAuction.endsAt);
+    if (this.state.rolloff?.startsAt !== undefined) deadlines.push(this.state.rolloff.startsAt);
+    if (deadlines.length > 0) {
+      await this.ctx.storage.setAlarm(Math.min(...deadlines));
     } else {
       await this.ctx.storage.deleteAlarm();
     }

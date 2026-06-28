@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ROLLOFF_START_DELAY_MS } from "@game/constants";
 import { seatPlayers } from "./support/driver";
 
 /** Seat names and run the host's start, landing in the roll-off phase. */
@@ -26,10 +27,35 @@ describe("opening roll-off", () => {
     game.admin({ kind: "forceDice", d1: 3, d2: 2 }); // Cy: 5
     game.apply("Cy", { type: "rollForOrder" });
 
-    expect(game.state.phase).toBe("playing");
-    expect(game.state.turn).toBe(1); // Bo had the highest roll
-    expect(game.state.rolloff).toBeNull();
+    // The deciding roll names the winner but holds in a reveal pause first.
+    expect(game.state.phase).toBe("rolloff");
+    expect(game.state.rolloff?.winner).toBe(1); // Bo had the highest roll
     expect(game.state.log.some((l) => l.includes("Bo rolled highest"))).toBe(true);
+    // No more rolling once the winner is decided, even before play begins.
+    expect(game.apply("Ada", { type: "rollForOrder" }).error).toBe("The roll-off is decided.");
+
+    // The reveal pause elapses -> the alarm tick begins play with Bo first.
+    game.advance(ROLLOFF_START_DELAY_MS).apply("server", { type: "tickRolloff" });
+    expect(game.state.phase).toBe("playing");
+    expect(game.state.turn).toBe(1);
+    expect(game.state.rolloff).toBeNull();
+  });
+
+  it("holds the reveal pause until it elapses, then begins play", () => {
+    const game = rolloffGame(["Ada", "Bo"]);
+    game.admin({ kind: "forceDice", d1: 1, d2: 1 }); // Ada: 2
+    game.apply("Ada", { type: "rollForOrder" });
+    game.admin({ kind: "forceDice", d1: 6, d2: 6 }); // Bo: 12 (highest)
+    game.apply("Bo", { type: "rollForOrder" });
+
+    // A tick before the pause is up is a no-op — still revealing.
+    game.advance(ROLLOFF_START_DELAY_MS - 1).apply("server", { type: "tickRolloff" });
+    expect(game.state.phase).toBe("rolloff");
+    expect(game.state.rolloff?.winner).toBe(1);
+
+    game.advance(1).apply("server", { type: "tickRolloff" });
+    expect(game.state.phase).toBe("playing");
+    expect(game.state.turn).toBe(1);
   });
 
   it("rejects rolling twice and rolling out of turn-order phase", () => {
@@ -58,12 +84,14 @@ describe("opening roll-off", () => {
     expect(game.state.rolloff?.contenders).toEqual([0, 1]);
     expect(game.apply("Cy", { type: "rollForOrder" }).error).toBe("You're not in the roll-off.");
 
-    // Round 2: Ada beats Bo and starts.
+    // Round 2: Ada beats Bo and starts (after the reveal pause).
     game.admin({ kind: "forceDice", d1: 6, d2: 6 });
     game.apply("Ada", { type: "rollForOrder" });
     game.admin({ kind: "forceDice", d1: 1, d2: 1 });
     game.apply("Bo", { type: "rollForOrder" });
+    expect(game.state.rolloff?.winner).toBe(0);
 
+    game.advance(ROLLOFF_START_DELAY_MS).apply("server", { type: "tickRolloff" });
     expect(game.state.phase).toBe("playing");
     expect(game.state.turn).toBe(0);
   });

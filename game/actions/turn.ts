@@ -10,6 +10,7 @@ import {
   resolveRolloff,
   sendToJail,
   settleDebt,
+  settleRolloffIfReady,
 } from "../flow";
 import { rollDie } from "../rng";
 import type { ActionContext, HandlerError } from "./context";
@@ -45,6 +46,7 @@ export function handleRollForOrder(ctx: ActionContext): HandlerError {
   if (state.phase !== "rolloff" || !state.rolloff) return "Not rolling for turn order.";
   if (index < 0) return "Not in this game.";
   const rolloff = state.rolloff;
+  if (rolloff.winner !== undefined) return "The roll-off is decided.";
   if (!rolloff.contenders.includes(index)) return "You're not in the roll-off.";
   if (rolloff.rolls[index] !== undefined) return "You already rolled for turn order.";
 
@@ -62,7 +64,13 @@ export function handleRollForOrder(ctx: ActionContext): HandlerError {
   state.lastRoll = total;
   appendLog(state, `${state.players[index].name} rolled ${total} for turn order.`);
 
-  if (rolloff.contenders.every((i) => rolloff.rolls[i] !== undefined)) resolveRolloff(state);
+  if (rolloff.contenders.every((i) => rolloff.rolls[i] !== undefined)) resolveRolloff(state, ctx.now);
+}
+
+/** Server-driven tick (fired by the room alarm) that begins play once the
+ *  post-roll-off reveal pause has elapsed. Idempotent: a no-op until then. */
+export function handleTickRolloff(ctx: ActionContext): HandlerError {
+  settleRolloffIfReady(ctx.state, ctx.now);
 }
 
 export function handleRoll(ctx: ActionContext): HandlerError {
