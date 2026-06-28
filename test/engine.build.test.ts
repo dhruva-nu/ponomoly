@@ -37,6 +37,21 @@ describe("build", () => {
     expect(broke.apply("Ada", { type: "build", pos: 1 }).error).toBe("Not enough cash to build.");
   });
 
+  it("blocks building while any site in the color set is mortgaged", () => {
+    const game = ownBrownGroup();
+    game.admin({ kind: "setMortgage", pos: 3, mortgaged: true });
+    const cashBefore = game.player(0).cash;
+    expect(game.apply("Ada", { type: "build", pos: 1 }).error).toBe(
+      "Lift all mortgages in this color set before building.",
+    );
+    expect(game.state.buildings[1]).toBeUndefined();
+    expect(game.player(0).cash).toBe(cashBefore);
+
+    game.admin({ kind: "setMortgage", pos: 3, mortgaged: false });
+    game.apply("Ada", { type: "build", pos: 1 });
+    expect(game.state.buildings[1]).toBe(1);
+  });
+
   it("builds houses and upgrades to a hotel", () => {
     const game = ownBrownGroup();
     game.apply("Ada", { type: "build", pos: 1 });
