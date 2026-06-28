@@ -1,44 +1,26 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import type { Player } from "@game/types";
 
-/** Six seat anchors around the tilted board: the four edge centers first, then
- *  two corners. Indexed via SEAT_LAYOUTS so seats fill evenly by player count. */
-export const SEAT_SLOTS: CSSProperties[] = [
-  { bottom: 4, left: "50%", transform: "translateX(-50%)" }, // 0 bottom-center
-  { top: 4, left: "50%", transform: "translateX(-50%)" }, //    1 top-center
-  { left: 4, top: "50%", transform: "translateY(-50%)" }, //    2 left-center
-  { right: 4, top: "50%", transform: "translateY(-50%)" }, //   3 right-center
-  { top: 4, left: 4 }, //                                       4 top-left-corner
-  { bottom: 4, right: 4 }, //                                   5 bottom-right-corner
-];
-
-/** Which anchors to use for a given count of seated players, chosen so seats
- *  spread evenly and don't crowd: 2 sit opposite, 3 form a triangle, 4 take all
- *  edges, and 5–6 add corners. */
-const SEAT_LAYOUTS: Record<number, number[]> = {
-  1: [0],
-  2: [0, 1], //          opposite edges
-  3: [0, 2, 3], //       bottom + both sides (triangle)
-  4: [0, 1, 2, 3], //    all four edge centers
-  5: [0, 1, 2, 3, 4], // + one corner
-  6: [0, 1, 2, 3, 4, 5], // + both corners
-};
-
-/** Evenly-distributed seat anchors for `count` seated players, in render order. */
-export function seatLayout(count: number): CSSProperties[] {
-  const order = SEAT_LAYOUTS[count] ?? SEAT_LAYOUTS[6];
-  return order.map((slot) => SEAT_SLOTS[slot]);
-}
-
-/** A player's status card anchored to one of the board's edges. Bankrupt players
- *  are filtered out before render (see Board.tsx), so this only ever shows
- *  still-in-play players. */
-export default function PlayerSeat({ player, active, slot }: { player: Player; active: boolean; slot: CSSProperties }) {
+/** A player's status card. Stacked into a left-side column by Board.tsx in
+ *  player order. Bankrupt players are filtered out before render, so this only
+ *  ever shows still-in-play players. */
+export default function PlayerSeat({
+  player,
+  active,
+  onHoverStart,
+  onHoverEnd,
+}: {
+  player: Player;
+  active: boolean;
+  onHoverStart?: () => void;
+  onHoverEnd?: () => void;
+}) {
   return (
-    <div style={{ position: "absolute", ...slot }}>
-      <div style={{
+    <div
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
+      style={{
         position: "relative", width: 156, display: "flex", alignItems: "center", gap: 10,
         background: active ? `linear-gradient(135deg, ${player.color}26, #fdfaf0)` : "#fbf7ea",
         border: `1px solid ${active ? player.color : "rgba(0,0,0,.18)"}`,
@@ -71,7 +53,6 @@ export default function PlayerSeat({ player, active, slot }: { player: Player; a
             Turn
           </div>
         )}
-      </div>
     </div>
   );
 }

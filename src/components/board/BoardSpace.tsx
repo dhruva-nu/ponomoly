@@ -10,12 +10,14 @@ const CORNER_TYPES = new Set(["go", "jail", "parking", "gotojail"]);
 export default function BoardSpace({
   space,
   state,
+  dimmed = false,
   onHover,
   onHoverMove,
   onHoverEnd,
 }: {
   space: Space;
   state: GameState;
+  dimmed?: boolean;
   onHover: (spaceIndex: number, event: ReactMouseEvent) => void;
   onHoverMove: (event: ReactMouseEvent) => void;
   onHoverEnd: () => void;
@@ -48,6 +50,7 @@ export default function BoardSpace({
         // only an icon + name, so center it on the card.
         justifyContent: isOwnable(space.t) ? "flex-start" : "center",
         padding: 2, overflow: "hidden", minWidth: 0, minHeight: 0, transformStyle: "preserve-3d",
+        opacity: dimmed ? 0.22 : 1, transition: "opacity .2s ease",
       }}
     >
       {space.t === "prop" && (
