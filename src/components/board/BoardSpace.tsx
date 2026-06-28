@@ -24,7 +24,7 @@ export default function BoardSpace({
   const isCorner = CORNER_TYPES.has(space.t);
   const owner = state.owners[space.idx];
   const ownerColor = owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].color : null;
-  const occupants = state.players.filter((player) => player.position === space.idx);
+  const occupants = state.players.filter((player) => player.position === space.idx && !player.bankrupt);
   const level = state.buildings[space.idx] || 0;
   const priceLabel = isOwnable(space.t) && space.price ? `$${space.price}` : "";
 

@@ -13,7 +13,9 @@ export const SEAT_SLOTS: CSSProperties[] = [
   { bottom: 4, right: 4 },
 ];
 
-/** A player's status card anchored to one of the board's edges. */
+/** A player's status card anchored to one of the board's edges. Bankrupt players
+ *  are filtered out before render (see Board.tsx), so this only ever shows
+ *  still-in-play players. */
 export default function PlayerSeat({ player, active, slot }: { player: Player; active: boolean; slot: CSSProperties }) {
   return (
     <div style={{ position: "absolute", ...slot }}>
@@ -23,7 +25,6 @@ export default function PlayerSeat({ player, active, slot }: { player: Player; a
         border: `1px solid ${active ? player.color : "rgba(0,0,0,.18)"}`,
         borderRadius: 13, padding: "9px 11px",
         boxShadow: active ? `0 0 0 1px ${player.color}55, 0 8px 22px rgba(0,0,0,.35)` : "0 6px 16px rgba(0,0,0,.3)",
-        opacity: player.bankrupt ? 0.4 : 1,
       }}>
         <div style={{
           width: 36, height: 36, borderRadius: "50%", background: "#fffdf6",
@@ -38,8 +39,8 @@ export default function PlayerSeat({ player, active, slot }: { player: Player; a
           <div style={{ fontWeight: 700, fontSize: 15, color: "#1c1813", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: 0.3 }}>
             {player.name}{!player.connected && " 💤"}{player.jailCards > 0 && ` 🎟${player.jailCards > 1 ? `×${player.jailCards}` : ""}`}
           </div>
-          <div className="font-display" style={{ fontWeight: 700, fontSize: 13, color: player.jailed && !player.bankrupt ? "#d2691e" : "#1f7a44" }}>
-            {player.bankrupt ? "BANKRUPT" : player.jailed ? `🔒 JAIL · $${player.cash}` : `$${player.cash}`}
+          <div className="font-display" style={{ fontWeight: 700, fontSize: 13, color: player.jailed ? "#d2691e" : "#1f7a44" }}>
+            {player.jailed ? `🔒 JAIL · $${player.cash}` : `$${player.cash}`}
           </div>
         </div>
         {active && (
