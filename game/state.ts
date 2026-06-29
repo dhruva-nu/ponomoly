@@ -25,6 +25,7 @@ export function createInitialState(hostId: string | null = null): GameState {
     log: [],
     winner: null,
     riggedDice: null,
+    cardDecks: { chance: [], chest: [] },
   };
 }
 
@@ -44,6 +45,7 @@ export function normalizeState(state: GameState): GameState {
   if (typeof state.doublesStreak !== "number") state.doublesStreak = 0;
   if (state.lastGo === undefined) state.lastGo = null;
   if (state.lastCard === undefined) state.lastCard = null;
+  if (!state.cardDecks) state.cardDecks = { chance: [], chest: [] };
   for (const player of state.players) {
     if (typeof player.jailed !== "boolean") player.jailed = false;
     if (typeof player.jailTurns !== "number") player.jailTurns = 0;

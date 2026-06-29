@@ -238,6 +238,10 @@ export interface GameState {
   winner: number | null;
   /** admin override: forces the next roll to these values, then clears */
   riggedDice: { d1: number; d2: number } | null;
+  /** shuffled draw piles for Chance and Community Chest. Each entry is an index
+   *  into the corresponding deck in cards.json. Cards are popped from the front;
+   *  when a pile empties it is reshuffled from the full deck automatically. */
+  cardDecks: Record<"chance" | "chest", number[]>;
 }
 
 export type { ClientAction, AdminCmd, ServerMessage } from "./protocol";

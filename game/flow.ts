@@ -264,7 +264,7 @@ export function resolveLanding(state: GameState, random: RandomSource, allowCard
       appendLog(state, `${player.name} rests at ${space.name}.`);
       return;
     }
-    applyCard(state, turn, space.t, drawCard(space.t, random), random);
+    applyCard(state, turn, space.t, drawCard(space.t, random, state.cardDecks), random);
   } else if (space.t === "go") {
     appendLog(state, `${player.name} landed on GO. Collected $200.`);
   } else if (space.t === "parking") {
