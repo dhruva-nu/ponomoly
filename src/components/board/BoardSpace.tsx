@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent as ReactMouseEvent } from "react";
-import type { GameState, Space } from "@game/types";
+import type { GameState, Player, Space } from "@game/types";
 import { isOwnable } from "@game/board";
 
 const CORNER_TYPES = new Set(["go", "jail", "parking", "gotojail"]);
@@ -22,7 +22,6 @@ export default function BoardSpace({
   onHoverMove: (event: ReactMouseEvent) => void;
   onHoverEnd: () => void;
 }) {
-  const [row, col] = space.pos;
   const isCorner = CORNER_TYPES.has(space.t);
   const owner = state.owners[space.idx];
   const ownerColor = owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].color : null;
@@ -35,34 +34,9 @@ export default function BoardSpace({
       onMouseEnter={(event) => onHover(space.idx, event)}
       onMouseMove={onHoverMove}
       onMouseLeave={onHoverEnd}
-      style={{
-        gridRow: row, gridColumn: col, position: "relative",
-        cursor: isOwnable(space.t) ? "help" : "default",
-        background: isCorner ? "#efe6cd" : "#fbf6e6",
-        border: "1px solid rgba(0,0,0,.28)", borderRadius: 4,
-        // An inset ring in the owner's color marks who owns the space (replacing
-        // the old corner dot). Drawn inward via box-shadow so it adds no layout
-        // shift and unowned tiles keep the plain neutral border.
-        boxShadow: ownerColor ? `inset 0 0 0 3px ${ownerColor}` : undefined,
-        display: "flex", flexDirection: "column", alignItems: "center",
-        // Ownable spaces (prop/rail/util) stack a band + name + price from the top;
-        // every other space (corners and the colorless chance/chest/tax cards) has
-        // only an icon + name, so center it on the card.
-        justifyContent: isOwnable(space.t) ? "flex-start" : "center",
-        padding: 2, overflow: "hidden", minWidth: 0, minHeight: 0, transformStyle: "preserve-3d",
-        opacity: dimmed ? 0.22 : 1, transition: "opacity .2s ease",
-      }}
+      style={cellStyle(space, isCorner, ownerColor, dimmed)}
     >
-      {space.t === "prop" && (
-        <div style={{ position: "relative", width: "100%", height: "clamp(5px, 1.85vmin, 16px)", background: space.c, marginBottom: 3, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }}>
-          {/* Houses/hotel sit on the color band, classic-Monopoly style. */}
-          {level > 0 && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "clamp(5px, 1vmin, 9px)", lineHeight: 1, letterSpacing: -1, textShadow: "0 1px 1px rgba(0,0,0,.5)" }}>
-              {level === 5 ? "🏨" : "🏠".repeat(level)}
-            </div>
-          )}
-        </div>
-      )}
+      {space.t === "prop" && <ColorBand color={space.c} level={level} />}
       {space.icon && (
         <div style={{ fontSize: isCorner ? "clamp(12px, 2.6vmin, 24px)" : "clamp(9px, 2.1vmin, 19px)", lineHeight: 1, color: isCorner ? "#c8202a" : "#2c241b", fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700 }}>
           {space.icon}
@@ -79,18 +53,60 @@ export default function BoardSpace({
           MTG
         </div>
       )}
-      <div style={{ position: "absolute", bottom: 1, left: 0, right: 0, display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "center", pointerEvents: "none" }}>
-        {occupants.map((player) => (
-          <div key={player.id} style={{
-            width: 26, height: 27, borderRadius: "50% 50% 45% 45%", background: "linear-gradient(180deg, #fffdf6, #efe6cd)",
-            border: `2px solid ${player.color}`, display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 14, fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700, color: player.color,
-            boxShadow: `0 2px 4px rgba(0,0,0,.4)`,
-          }}>
-            {player.token}
-          </div>
-        ))}
-      </div>
+      <OccupantTokens occupants={occupants} />
+    </div>
+  );
+}
+
+/** Container style for one board cell: grid placement, owner ring, dimming. */
+function cellStyle(space: Space, isCorner: boolean, ownerColor: string | null, dimmed: boolean): React.CSSProperties {
+  const [row, col] = space.pos;
+  return {
+    gridRow: row, gridColumn: col, position: "relative",
+    cursor: isOwnable(space.t) ? "help" : "default",
+    background: isCorner ? "#efe6cd" : "#fbf6e6",
+    border: "1px solid rgba(0,0,0,.28)", borderRadius: 4,
+    // An inset ring in the owner's color marks who owns the space (replacing
+    // the old corner dot). Drawn inward via box-shadow so it adds no layout
+    // shift and unowned tiles keep the plain neutral border.
+    boxShadow: ownerColor ? `inset 0 0 0 3px ${ownerColor}` : undefined,
+    display: "flex", flexDirection: "column", alignItems: "center",
+    // Ownable spaces (prop/rail/util) stack a band + name + price from the top;
+    // every other space (corners and the colorless chance/chest/tax cards) has
+    // only an icon + name, so center it on the card.
+    justifyContent: isOwnable(space.t) ? "flex-start" : "center",
+    padding: 2, overflow: "hidden", minWidth: 0, minHeight: 0, transformStyle: "preserve-3d",
+    opacity: dimmed ? 0.22 : 1, transition: "opacity .2s ease",
+  };
+}
+
+/** Property color band with houses/hotel sitting on it, classic-Monopoly style. */
+function ColorBand({ color, level }: { color?: string; level: number }) {
+  return (
+    <div style={{ position: "relative", width: "100%", height: "clamp(5px, 1.85vmin, 16px)", background: color, marginBottom: 3, flexShrink: 0, borderBottom: "1px solid rgba(0,0,0,.45)" }}>
+      {level > 0 && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "clamp(5px, 1vmin, 9px)", lineHeight: 1, letterSpacing: -1, textShadow: "0 1px 1px rgba(0,0,0,.5)" }}>
+          {level === 5 ? "🏨" : "🏠".repeat(level)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Player tokens currently standing on this space, lined up along the bottom. */
+function OccupantTokens({ occupants }: { occupants: Player[] }) {
+  return (
+    <div style={{ position: "absolute", bottom: 1, left: 0, right: 0, display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "center", pointerEvents: "none" }}>
+      {occupants.map((player) => (
+        <div key={player.id} style={{
+          width: 26, height: 27, borderRadius: "50% 50% 45% 45%", background: "linear-gradient(180deg, #fffdf6, #efe6cd)",
+          border: `2px solid ${player.color}`, display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 14, fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700, color: player.color,
+          boxShadow: `0 2px 4px rgba(0,0,0,.4)`,
+        }}>
+          {player.token}
+        </div>
+      ))}
     </div>
   );
 }

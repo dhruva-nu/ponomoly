@@ -36,20 +36,7 @@ export default function Lobby({
       boxShadow: "0 12px 30px rgba(34,24,8,.3)", padding: "34px 30px 28px",
       animation: "popIn .3s ease", marginTop: "5vh",
     }}>
-      <div style={{ textAlign: "center", borderBottom: "1px solid rgba(0,0,0,.15)", paddingBottom: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", color: COLOR.cyan }}>
-          Lobby · Room {roomId}
-        </div>
-        <div className="font-display" style={{ fontWeight: 800, fontSize: 30, lineHeight: 1.05, marginTop: 8, color: COLOR.red, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}>
-          PONOMOLY
-        </div>
-        <button onClick={copyInvite} style={{
-          marginTop: 12, border: `1px solid ${COLOR.cyan}55`, background: `${COLOR.cyan}1a`, color: COLOR.cyan,
-          fontWeight: 600, fontSize: 12, letterSpacing: 1, textTransform: "uppercase", padding: "8px 16px", borderRadius: 9, cursor: "pointer",
-        }}>
-          {copied ? "Link copied ✓" : "Copy invite link"}
-        </button>
-      </div>
+      <LobbyHeader roomId={roomId} copied={copied} onCopy={copyInvite} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 9, margin: "20px 0" }}>
         {state.players.map((player) => (
@@ -61,23 +48,52 @@ export default function Lobby({
         {state.players.length}/{MAX_PLAYERS} players · waiting for {isHost ? "you" : "the host"} to start
       </div>
 
-      {isHost ? (
-        <button onClick={() => send({ type: "start" })} disabled={!canStart} style={{
-          width: "100%", border: "none", background: canStart ? GRADIENT.primary : "rgba(0,0,0,.06)",
-          color: canStart ? COLOR.abyss : COLOR.dim, fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700,
-          fontSize: 14, letterSpacing: 1.5, textTransform: "uppercase", padding: 15, borderRadius: 11,
-          cursor: canStart ? "pointer" : "default", boxShadow: canStart ? "0 6px 18px rgba(34,24,8,.18)" : "none",
-        }}>
-          {canStart ? "Initialize ▸" : `Need ${MIN_PLAYERS}+ players`}
-        </button>
-      ) : (
-        <div style={{
-          width: "100%", textAlign: "center", border: "1px solid rgba(0,0,0,.15)", background: "#f6efdd",
-          color: COLOR.muted, fontWeight: 600, letterSpacing: 1, padding: 14, borderRadius: 11,
-        }}>
-          Waiting for host to start…
-        </div>
-      )}
+      <LobbyStartControl isHost={isHost} canStart={canStart} onStart={() => send({ type: "start" })} />
     </div>
+  );
+}
+
+/** Title block with the kicker, "PONOMOLY" heading, and copy-invite button. */
+function LobbyHeader({ roomId, copied, onCopy }: { roomId: string; copied: boolean; onCopy: () => void }) {
+  return (
+    <div style={{ textAlign: "center", borderBottom: "1px solid rgba(0,0,0,.15)", paddingBottom: 20 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", color: COLOR.cyan }}>
+        Lobby · Room {roomId}
+      </div>
+      <div className="font-display" style={{ fontWeight: 800, fontSize: 30, lineHeight: 1.05, marginTop: 8, color: COLOR.red, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}>
+        PONOMOLY
+      </div>
+      <button onClick={onCopy} style={{
+        marginTop: 12, border: `1px solid ${COLOR.cyan}55`, background: `${COLOR.cyan}1a`, color: COLOR.cyan,
+        fontWeight: 600, fontSize: 12, letterSpacing: 1, textTransform: "uppercase", padding: "8px 16px", borderRadius: 9, cursor: "pointer",
+      }}>
+        {copied ? "Link copied ✓" : "Copy invite link"}
+      </button>
+    </div>
+  );
+}
+
+/** Host's start button, or a waiting notice for non-hosts. */
+function LobbyStartControl({ isHost, canStart, onStart }: { isHost: boolean; canStart: boolean; onStart: () => void }) {
+  if (!isHost) {
+    return (
+      <div style={{
+        width: "100%", textAlign: "center", border: "1px solid rgba(0,0,0,.15)", background: "#f6efdd",
+        color: COLOR.muted, fontWeight: 600, letterSpacing: 1, padding: 14, borderRadius: 11,
+      }}>
+        Waiting for host to start…
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={onStart} disabled={!canStart} style={{
+      width: "100%", border: "none", background: canStart ? GRADIENT.primary : "rgba(0,0,0,.06)",
+      color: canStart ? COLOR.abyss : COLOR.dim, fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700,
+      fontSize: 14, letterSpacing: 1.5, textTransform: "uppercase", padding: 15, borderRadius: 11,
+      cursor: canStart ? "pointer" : "default", boxShadow: canStart ? "0 6px 18px rgba(34,24,8,.18)" : "none",
+    }}>
+      {canStart ? "Initialize ▸" : `Need ${MIN_PLAYERS}+ players`}
+    </button>
   );
 }

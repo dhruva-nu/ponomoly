@@ -1,6 +1,6 @@
 "use client";
 
-import type { ClientAction, GameState } from "@game/types";
+import type { ClientAction, GameState, Player } from "@game/types";
 import Modal from "@/components/ui/Modal";
 import { PrimaryButton } from "@/components/ui/Buttons";
 import { COLOR, GRADIENT, eyebrowStyle } from "@/components/ui/theme";
@@ -44,80 +44,128 @@ export default function RolloffModal({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "18px 2px 4px" }}>
-          {state.players.map((player, index) => {
-            const inRound = rolloff.contenders.includes(index);
-            const roll = rolloff.rolls[index];
-            const isWinner = decided && rolloff.winner === index;
-            return (
-              <div
-                key={player.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  background: isWinner
-                    ? "rgba(216,163,42,.22)"
-                    : inRound
-                      ? "rgba(216,163,42,.10)"
-                      : "rgba(0,0,0,.04)",
-                  border: `1px solid ${isWinner ? COLOR.gold : inRound ? COLOR.gold + "44" : "transparent"}`,
-                  opacity: decided ? (isWinner ? 1 : 0.5) : inRound ? 1 : 0.5,
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <span style={{ fontSize: 18 }}>{player.token}</span>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      color: COLOR.text,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {player.name}
-                  </span>
-                  {isWinner && <span style={{ fontSize: 14 }}>👑</span>}
-                </span>
-                <span
-                  className="font-display"
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 800,
-                    color: roll !== undefined ? COLOR.ink : COLOR.dim,
-                    minWidth: 28,
-                  }}
-                >
-                  {roll !== undefined ? roll : inRound ? "…" : "—"}
-                </span>
-              </div>
-            );
-          })}
+          {state.players.map((player, index) => (
+            <RolloffPlayerRow
+              key={player.id}
+              player={player}
+              inRound={rolloff.contenders.includes(index)}
+              roll={rolloff.rolls[index]}
+              isWinner={decided && rolloff.winner === index}
+              decided={decided}
+            />
+          ))}
         </div>
 
-        <div style={{ marginTop: 16 }}>
-          {decided ? (
-            <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.gold }}>
-              🎲 {winnerName} starts — beginning the game…
-            </div>
-          ) : amContender && !haveRolled ? (
-            <PrimaryButton onClick={() => send({ type: "rollForOrder" })} gradient={GRADIENT.accept}>
-              Roll the dice
-            </PrimaryButton>
-          ) : (
-            <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.muted }}>
-              {!amContender
-                ? myIndex < 0
-                  ? "Spectating the roll-off"
-                  : "You're out of the roll-off — waiting on the tie-break"
-                : "Rolled — waiting for the others…"}
-            </div>
-          )}
-        </div>
+        <RolloffFooter
+          decided={decided}
+          winnerName={winnerName}
+          amContender={amContender}
+          haveRolled={haveRolled}
+          myIndex={myIndex}
+          send={send}
+        />
       </div>
     </Modal>
+  );
+}
+
+/** One player's row in the roll-off list: token, name, crown, and their roll. */
+function RolloffPlayerRow({
+  player,
+  inRound,
+  roll,
+  isWinner,
+  decided,
+}: {
+  player: Player;
+  inRound: boolean;
+  roll: number | undefined;
+  isWinner: boolean;
+  decided: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        padding: "8px 12px",
+        borderRadius: 10,
+        background: isWinner
+          ? "rgba(216,163,42,.22)"
+          : inRound
+            ? "rgba(216,163,42,.10)"
+            : "rgba(0,0,0,.04)",
+        border: `1px solid ${isWinner ? COLOR.gold : inRound ? COLOR.gold + "44" : "transparent"}`,
+        opacity: decided ? (isWinner ? 1 : 0.5) : inRound ? 1 : 0.5,
+      }}
+    >
+      <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <span style={{ fontSize: 18 }}>{player.token}</span>
+        <span
+          style={{
+            fontWeight: 700,
+            color: COLOR.text,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {player.name}
+        </span>
+        {isWinner && <span style={{ fontSize: 14 }}>👑</span>}
+      </span>
+      <span
+        className="font-display"
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          color: roll !== undefined ? COLOR.ink : COLOR.dim,
+          minWidth: 28,
+        }}
+      >
+        {roll !== undefined ? roll : inRound ? "…" : "—"}
+      </span>
+    </div>
+  );
+}
+
+/** The action area below the list: roll button, winner banner, or wait message. */
+function RolloffFooter({
+  decided,
+  winnerName,
+  amContender,
+  haveRolled,
+  myIndex,
+  send,
+}: {
+  decided: boolean;
+  winnerName: string | null | undefined;
+  amContender: boolean;
+  haveRolled: boolean;
+  myIndex: number;
+  send: (action: ClientAction) => void;
+}) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      {decided ? (
+        <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.gold }}>
+          🎲 {winnerName} starts — beginning the game…
+        </div>
+      ) : amContender && !haveRolled ? (
+        <PrimaryButton onClick={() => send({ type: "rollForOrder" })} gradient={GRADIENT.accept}>
+          Roll the dice
+        </PrimaryButton>
+      ) : (
+        <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.muted }}>
+          {!amContender
+            ? myIndex < 0
+              ? "Spectating the roll-off"
+              : "You're out of the roll-off — waiting on the tie-break"
+            : "Rolled — waiting for the others…"}
+        </div>
+      )}
+    </div>
   );
 }
