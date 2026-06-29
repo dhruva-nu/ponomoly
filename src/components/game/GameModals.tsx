@@ -60,13 +60,7 @@ export default function GameModals({
 
   return (
     <>
-      {state.phase === "rolloff" && (
-        <RolloffModal state={state} myIndex={view.myIndex} send={send} />
-      )}
-
-      {state.phase === "ended" && state.winner != null && (
-        <WinnerModal state={state} isHost={isHost} send={send} />
-      )}
+      <PhaseModals state={state} myIndex={view.myIndex} isHost={isHost} send={send} />
 
       {showBuy && pendingBuy !== null && <BuyModal spaceIndex={pendingBuy} cash={cash} send={send} />}
 
@@ -74,32 +68,70 @@ export default function GameModals({
         <AuctionModal auction={view.auction} state={state} myIndex={view.myIndex} send={send} />
       )}
 
-      {showRent && pendingRent !== null && !rentMinimized && (
-        <RentModal
-          spaceIndex={pendingRent.pos}
-          amount={pendingRent.amount}
-          original={pendingRent.original}
-          negotiating={pendingRent.negotiating}
-          ownerName={state.players[pendingRent.to]?.name ?? "owner"}
-          cash={cash}
-          send={send}
-          onMinimize={() => setRentMinimized(true)}
-        />
-      )}
-      {showRent && pendingRent !== null && rentMinimized && (
-        <RentPill amount={pendingRent.amount} onOpen={() => setRentMinimized(false)} />
-      )}
+      <RentNegotiateModals
+        state={state}
+        pendingRent={pendingRent}
+        cash={cash}
+        showRent={showRent}
+        showNegotiate={showNegotiate}
+        rentMinimized={rentMinimized}
+        setRentMinimized={setRentMinimized}
+        send={send}
+      />
 
-      {showNegotiate && pendingRent !== null && (
-        <OwnerNegotiateModal
-          spaceIndex={pendingRent.pos}
-          original={pendingRent.original}
-          current={pendingRent.amount}
-          tenantName={state.players[pendingRent.payer]?.name ?? "the tenant"}
-          send={send}
-        />
-      )}
+      <TradeModals state={state} view={view} send={send} showTrade={showTrade} closeTrade={closeTrade} />
 
+      <BuildManageModals
+        state={state}
+        myIndex={view.myIndex}
+        send={send}
+        buildTarget={buildTarget}
+        clearBuildTarget={clearBuildTarget}
+        manageTarget={manageTarget}
+        clearManageTarget={clearManageTarget}
+      />
+    </>
+  );
+}
+
+// Rolloff (turn order) and end-of-game winner modals, keyed off the phase.
+function PhaseModals({
+  state,
+  myIndex,
+  isHost,
+  send,
+}: {
+  state: GameState;
+  myIndex: number;
+  isHost: boolean;
+  send: (action: ClientAction) => void;
+}) {
+  return (
+    <>
+      {state.phase === "rolloff" && <RolloffModal state={state} myIndex={myIndex} send={send} />}
+      {state.phase === "ended" && state.winner != null && (
+        <WinnerModal state={state} isHost={isHost} send={send} />
+      )}
+    </>
+  );
+}
+
+// Outgoing trade builder plus any incoming trade offer.
+function TradeModals({
+  state,
+  view,
+  send,
+  showTrade,
+  closeTrade,
+}: {
+  state: GameState;
+  view: GameView;
+  send: (action: ClientAction) => void;
+  showTrade: boolean;
+  closeTrade: () => void;
+}) {
+  return (
+    <>
       {showTrade && view.myIndex >= 0 && (
         <TradeBuilderModal state={state} myIndex={view.myIndex} send={send} onClose={closeTrade} />
       )}
@@ -107,12 +139,35 @@ export default function GameModals({
       {view.incomingTrade && (
         <IncomingTradeModal trade={view.incomingTrade} state={state} myIndex={view.myIndex} send={send} />
       )}
+    </>
+  );
+}
 
+// Build and manage (sell/mortgage) confirmation prompts.
+function BuildManageModals({
+  state,
+  myIndex,
+  send,
+  buildTarget,
+  clearBuildTarget,
+  manageTarget,
+  clearManageTarget,
+}: {
+  state: GameState;
+  myIndex: number;
+  send: (action: ClientAction) => void;
+  buildTarget: number | null;
+  clearBuildTarget: () => void;
+  manageTarget: ManageTarget | null;
+  clearManageTarget: () => void;
+}) {
+  return (
+    <>
       {buildTarget !== null && (
         <BuildConfirmModal
           spaceIndex={buildTarget}
           level={state.buildings[buildTarget] || 0}
-          cash={state.players[view.myIndex]?.cash ?? 0}
+          cash={state.players[myIndex]?.cash ?? 0}
           onConfirm={() => {
             send({ type: "build", pos: buildTarget });
             clearBuildTarget();
@@ -132,6 +187,57 @@ export default function GameModals({
             clearManageTarget();
           }}
           onCancel={clearManageTarget}
+        />
+      )}
+    </>
+  );
+}
+
+// Tenant-side rent prompt (modal or minimized pill) and the owner's negotiate modal.
+function RentNegotiateModals({
+  state,
+  pendingRent,
+  cash,
+  showRent,
+  showNegotiate,
+  rentMinimized,
+  setRentMinimized,
+  send,
+}: {
+  state: GameState;
+  pendingRent: GameState["pendingRent"];
+  cash: number;
+  showRent: boolean;
+  showNegotiate: boolean;
+  rentMinimized: boolean;
+  setRentMinimized: (value: boolean) => void;
+  send: (action: ClientAction) => void;
+}) {
+  if (pendingRent === null) return null;
+  return (
+    <>
+      {showRent && rentMinimized && (
+        <RentPill amount={pendingRent.amount} onOpen={() => setRentMinimized(false)} />
+      )}
+      {showRent && !rentMinimized && (
+        <RentModal
+          spaceIndex={pendingRent.pos}
+          amount={pendingRent.amount}
+          original={pendingRent.original}
+          negotiating={pendingRent.negotiating}
+          ownerName={state.players[pendingRent.to]?.name ?? "owner"}
+          cash={cash}
+          send={send}
+          onMinimize={() => setRentMinimized(true)}
+        />
+      )}
+      {showNegotiate && (
+        <OwnerNegotiateModal
+          spaceIndex={pendingRent.pos}
+          original={pendingRent.original}
+          current={pendingRent.amount}
+          tenantName={state.players[pendingRent.payer]?.name ?? "the tenant"}
+          send={send}
         />
       )}
     </>

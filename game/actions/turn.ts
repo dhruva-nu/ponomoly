@@ -26,6 +26,17 @@ function requireLiveTurn(ctx: ActionContext): string | undefined {
   if (ctx.index !== ctx.state.turn) return "Not your turn.";
 }
 
+/** Roll two dice, consuming a single-use rigged override if one is set. */
+function rollDice(ctx: ActionContext): { d1: number; d2: number } {
+  const { state } = ctx;
+  if (state.riggedDice) {
+    const { d1, d2 } = state.riggedDice;
+    state.riggedDice = null; // single-use override, same as a normal roll
+    return { d1, d2 };
+  }
+  return { d1: rollDie(ctx.random), d2: rollDie(ctx.random) };
+}
+
 /** Move the current player forward `total` spaces (crediting GO on a wrap) and
  *  resolve whatever they land on. */
 function advancePawn(ctx: ActionContext, total: number): void {
@@ -50,15 +61,7 @@ export function handleRollForOrder(ctx: ActionContext): HandlerError {
   if (!rolloff.contenders.includes(index)) return "You're not in the roll-off.";
   if (rolloff.rolls[index] !== undefined) return "You already rolled for turn order.";
 
-  let d1: number;
-  let d2: number;
-  if (state.riggedDice) {
-    ({ d1, d2 } = state.riggedDice);
-    state.riggedDice = null; // single-use override, same as a normal roll
-  } else {
-    d1 = rollDie(ctx.random);
-    d2 = rollDie(ctx.random);
-  }
+  const { d1, d2 } = rollDice(ctx);
   const total = d1 + d2;
   rolloff.rolls[index] = total;
   state.lastRoll = total;
@@ -73,6 +76,50 @@ export function handleTickRolloff(ctx: ActionContext): HandlerError {
   settleRolloffIfReady(ctx.state, ctx.now);
 }
 
+/** Resolve a jailed player's roll, which is an escape attempt rather than a
+ *  move: doubles or a served sentence frees them (and spends the roll on the
+ *  exit move); otherwise they stay put. Always ends the turn. */
+function resolveJailRoll(ctx: ActionContext, total: number, isDoubles: boolean): void {
+  const { state } = ctx;
+  const player = state.players[state.turn];
+  if (isDoubles) {
+    player.jailed = false;
+    player.jailTurns = 0;
+    appendLog(state, `${player.name} rolled doubles and walked free from Jail.`);
+    advancePawn(ctx, total); // leaving on doubles spends the roll — no bonus turn
+    return;
+  }
+  player.jailTurns += 1;
+  if (player.jailTurns >= JAIL_MAX_TURNS) {
+    player.cash -= JAIL_FINE;
+    player.jailed = false;
+    player.jailTurns = 0;
+    appendLog(state, `${player.name} paid $${JAIL_FINE} and was released from Jail.`);
+    settleDebt(state, state.turn);
+    if (!player.bankrupt) advancePawn(ctx, total);
+    return;
+  }
+  appendLog(
+    state,
+    `${player.name} failed to roll doubles (attempt ${player.jailTurns}/${JAIL_MAX_TURNS}) and stays in Jail.`,
+  );
+}
+
+/** Track the free-play doubles streak. Returns true if a third double in a row
+ *  sent the player straight to Jail (without moving), ending the turn. */
+function sentToJailForDoubles(ctx: ActionContext, isDoubles: boolean): boolean {
+  const { state } = ctx;
+  if (!isDoubles) {
+    state.doublesStreak = 0;
+    return false;
+  }
+  state.doublesStreak += 1;
+  if (state.doublesStreak < DOUBLES_TO_JAIL) return false;
+  appendLog(state, `${state.players[state.turn].name} rolled three doubles in a row.`);
+  sendToJail(state, state.turn);
+  return true;
+}
+
 export function handleRoll(ctx: ActionContext): HandlerError {
   const blocked = requireLiveTurn(ctx);
   if (blocked) return blocked;
@@ -81,15 +128,7 @@ export function handleRoll(ctx: ActionContext): HandlerError {
   if (state.pendingRent !== null) return "Pay the rent you owe first.";
   if (state.dice.rolled || state.pendingBuy !== null) return "Already rolled.";
 
-  let d1: number;
-  let d2: number;
-  if (state.riggedDice) {
-    ({ d1, d2 } = state.riggedDice);
-    state.riggedDice = null; // single-use override
-  } else {
-    d1 = rollDie(ctx.random);
-    d2 = rollDie(ctx.random);
-  }
+  const { d1, d2 } = rollDice(ctx);
   const total = d1 + d2;
   const isDoubles = d1 === d2;
   state.dice = { d1, d2, rolled: true };
@@ -99,41 +138,12 @@ export function handleRoll(ctx: ActionContext): HandlerError {
 
   // Jailed: the roll is an escape attempt, not a normal move.
   if (player.jailed) {
-    if (isDoubles) {
-      player.jailed = false;
-      player.jailTurns = 0;
-      appendLog(state, `${player.name} rolled doubles and walked free from Jail.`);
-      advancePawn(ctx, total); // leaving on doubles spends the roll — no bonus turn
-      return;
-    }
-    player.jailTurns += 1;
-    if (player.jailTurns >= JAIL_MAX_TURNS) {
-      player.cash -= JAIL_FINE;
-      player.jailed = false;
-      player.jailTurns = 0;
-      appendLog(state, `${player.name} paid $${JAIL_FINE} and was released from Jail.`);
-      settleDebt(state, state.turn);
-      if (!player.bankrupt) advancePawn(ctx, total);
-      return;
-    }
-    appendLog(
-      state,
-      `${player.name} failed to roll doubles (attempt ${player.jailTurns}/${JAIL_MAX_TURNS}) and stays in Jail.`,
-    );
-    return; // the attempt spends the turn
+    resolveJailRoll(ctx, total, isDoubles);
+    return;
   }
 
   // Free play: a third double in a row goes straight to Jail without moving.
-  if (isDoubles) {
-    state.doublesStreak += 1;
-    if (state.doublesStreak >= DOUBLES_TO_JAIL) {
-      appendLog(state, `${player.name} rolled three doubles in a row.`);
-      sendToJail(state, state.turn);
-      return;
-    }
-  } else {
-    state.doublesStreak = 0;
-  }
+  if (sentToJailForDoubles(ctx, isDoubles)) return;
 
   advancePawn(ctx, total);
 

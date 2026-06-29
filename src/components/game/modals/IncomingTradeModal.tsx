@@ -29,6 +29,36 @@ function TradeSide({ label, props, cash, accent }: { label: string; props: numbe
   );
 }
 
+/** Custom rent clauses attached to the offer, rendered as readable sentences. */
+function RentClauses({ rules, fromName, toName }: { rules: NonNullable<PendingTrade["rules"]>; fromName: string; toName: string }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: COLOR.purple, marginBottom: 8 }}>
+        Rent clauses
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        {rules.map((rule, i) => (
+          <div
+            key={i}
+            style={{
+              background: "#f6efdd",
+              border: "1px solid rgba(0,0,0,.15)",
+              borderLeft: `5px solid ${COLOR.purple}`,
+              borderRadius: 7,
+              padding: "6px 9px",
+              fontSize: 12,
+              fontWeight: 600,
+              color: COLOR.text,
+            }}
+          >
+            {tradeRuleText(rule, fromName, toName)}.
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Recipient-facing view of an incoming trade offer (accept or decline). */
 export default function IncomingTradeModal({
   trade,
@@ -59,32 +89,7 @@ export default function IncomingTradeModal({
         <TradeSide label="You give" props={trade.requestProps} cash={trade.requestCash} accent={COLOR.rose} />
         <TradeSide label="You get" props={trade.offerProps} cash={trade.offerCash} accent={COLOR.green} />
       </div>
-      {rules.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: COLOR.purple, marginBottom: 8 }}>
-            Rent clauses
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {rules.map((rule, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "#f6efdd",
-                  border: "1px solid rgba(0,0,0,.15)",
-                  borderLeft: `5px solid ${COLOR.purple}`,
-                  borderRadius: 7,
-                  padding: "6px 9px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: COLOR.text,
-                }}
-              >
-                {tradeRuleText(rule, fromName, toName)}.
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {rules.length > 0 && <RentClauses rules={rules} fromName={fromName} toName={toName} />}
       {cannotAfford && (
         <div style={{ marginTop: 14, fontSize: 12, fontWeight: 600, color: COLOR.rose }}>
           You only have ${myCash} — not enough cash for this trade.

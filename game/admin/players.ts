@@ -34,6 +34,47 @@ export function adminSetTurn(ctx: ActionContext, cmd: Cmd<"setTurn">): HandlerEr
   appendLog(state, `[admin] It is now ${state.players[turn].name}'s turn.`);
 }
 
+// Strip the kicked seat's holdings (releasing improvements/mortgages) and return
+// the spaces they held so the caller can later auction them.
+function seizeEstate(state: ActionContext["state"], target: number): number[] {
+  const estate: number[] = [];
+  for (const key in state.owners) {
+    if (state.owners[key] === target) {
+      estate.push(+key);
+      delete state.owners[+key];
+      delete state.buildings[+key];
+      delete state.mortgaged[+key];
+    }
+  }
+  return estate;
+}
+
+// Reindex every ownership entry after a player at `target` is spliced out.
+function reindexOwners(state: ActionContext["state"], target: number): void {
+  const reindexed: Record<number, number> = {};
+  for (const key in state.owners) {
+    const owner = state.owners[key];
+    reindexed[+key] = owner > target ? owner - 1 : owner;
+  }
+  state.owners = reindexed;
+}
+
+// A live auction also holds player indices — drop the kicked player and shift
+// the rest down to match the spliced player list.
+function shiftAuctionIndices(state: ActionContext["state"], target: number): void {
+  const auction = state.pendingAuction;
+  if (!auction) return;
+  auction.active = auction.active
+    .filter((i) => i !== target)
+    .map((i) => (i > target ? i - 1 : i));
+  if (auction.highBidder === target) {
+    auction.highBidder = null;
+    auction.highBid = 0;
+  } else if (auction.highBidder !== null && auction.highBidder > target) {
+    auction.highBidder -= 1;
+  }
+}
+
 export function adminKick(ctx: ActionContext, cmd: Cmd<"kick">): HandlerError {
   const { state } = ctx;
   if (!state.players[cmd.target]) return "No such player.";
@@ -43,41 +84,13 @@ export function adminKick(ctx: ActionContext, cmd: Cmd<"kick">): HandlerError {
 
   // Collect the kicked seat's holdings up front: mid-game they go to auction,
   // otherwise they're simply released below.
-  const estate: number[] = [];
-  for (const key in state.owners) {
-    if (state.owners[key] === cmd.target) {
-      estate.push(+key);
-      delete state.owners[+key];
-      delete state.buildings[+key];
-      delete state.mortgaged[+key];
-    }
-  }
+  const estate = seizeEstate(state, cmd.target);
 
   // Player indices shift on removal, so any in-flight trade is now stale.
   state.pendingTrade = null;
   state.players.splice(cmd.target, 1);
-
-  // Reindex owners that referenced players after the removed one.
-  const reindexed: Record<number, number> = {};
-  for (const key in state.owners) {
-    const owner = state.owners[key];
-    reindexed[+key] = owner > cmd.target ? owner - 1 : owner;
-  }
-  state.owners = reindexed;
-
-  // A live auction also holds player indices — shift them the same way.
-  const auction = state.pendingAuction;
-  if (auction) {
-    auction.active = auction.active
-      .filter((i) => i !== cmd.target)
-      .map((i) => (i > cmd.target ? i - 1 : i));
-    if (auction.highBidder === cmd.target) {
-      auction.highBidder = null;
-      auction.highBid = 0;
-    } else if (auction.highBidder !== null && auction.highBidder > cmd.target) {
-      auction.highBidder -= 1;
-    }
-  }
+  reindexOwners(state, cmd.target);
+  shiftAuctionIndices(state, cmd.target);
 
   if (state.hostId === null || !state.players.some((player) => player.id === state.hostId)) {
     state.hostId = state.players[0]?.id ?? null;

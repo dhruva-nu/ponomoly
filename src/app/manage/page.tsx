@@ -34,6 +34,8 @@ export default function ManagePage() {
   );
 }
 
+// ── Password gate ──────────────────────────────────────────────────────────
+
 function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => void }) {
   const [pw, setPw] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -54,91 +56,106 @@ function PasswordGate({ onUnlock }: { onUnlock: (pw: string) => void }) {
   };
 
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        maxWidth: 420,
-        background: GRADIENT.panel,
-        border: "1px solid rgba(0,0,0,.15)",
-        borderRadius: 16,
-        boxShadow: "0 12px 30px rgba(34,24,8,.3)",
-        padding: "38px 34px 32px",
-        animation: "popIn .3s ease",
-        marginTop: "12vh",
-      }}
-    >
-      <div style={{ textAlign: "center", borderBottom: "1px solid rgba(0,0,0,.15)", paddingBottom: 22 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", color: COLOR.gold }}>
-          Restricted
-        </div>
-        <div
-          className="font-display"
-          style={{ fontWeight: 800, fontSize: 28, letterSpacing: 1, marginTop: 10, color: COLOR.ink, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}
-        >
-          ROOM CONTROL
-        </div>
-        <div style={{ fontSize: 14, color: COLOR.dim, marginTop: 8 }}>Enter the admin password to continue.</div>
-      </div>
-
-      <div style={{ margin: "22px 0 6px" }}>
-        <input
-          type="password"
-          autoFocus
-          value={pw}
-          onChange={(e) => setPw(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Admin password"
-          style={{
-            width: "100%",
-            border: `1px solid ${error ? COLOR.red : "rgba(0,0,0,.2)"}`,
-            background: "#fffdf4",
-            borderRadius: 10,
-            padding: "13px 16px",
-            fontSize: 16,
-            fontWeight: 600,
-            letterSpacing: 1,
-            color: COLOR.ink,
-            outline: "none",
-          }}
-        />
-      </div>
+    <div style={gatePanelStyle}>
+      <GateHeader />
+      <PasswordField value={pw} invalid={!!error} onChange={setPw} onSubmit={submit} />
       {error && <div style={{ color: COLOR.rose, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{error}</div>}
-
-      <button
-        onClick={submit}
-        disabled={!pw || checking}
-        style={{
-          width: "100%",
-          marginTop: 12,
-          border: "none",
-          background: pw && !checking ? GRADIENT.primary : "rgba(0,0,0,.06)",
-          color: pw && !checking ? COLOR.abyss : COLOR.dim,
-          fontFamily: "var(--font-orbitron), sans-serif",
-          fontWeight: 700,
-          fontSize: 14,
-          letterSpacing: 1.5,
-          textTransform: "uppercase",
-          padding: 15,
-          borderRadius: 11,
-          cursor: pw && !checking ? "pointer" : "default",
-          boxShadow: pw && !checking ? "0 6px 18px rgba(34,24,8,.18)" : "none",
-        }}
-      >
-        {checking ? "Verifying…" : "Unlock ▸"}
-      </button>
+      <UnlockButton enabled={!!pw && !checking} checking={checking} onClick={submit} />
     </div>
   );
 }
 
-function Console({ password, onLogout }: { password: string; onLogout: () => void }) {
+function GateHeader() {
+  return (
+    <div style={{ textAlign: "center", borderBottom: "1px solid rgba(0,0,0,.15)", paddingBottom: 22 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", color: COLOR.gold }}>
+        Restricted
+      </div>
+      <div
+        className="font-display"
+        style={{ fontWeight: 800, fontSize: 28, letterSpacing: 1, marginTop: 10, color: COLOR.ink, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}
+      >
+        ROOM CONTROL
+      </div>
+      <div style={{ fontSize: 14, color: COLOR.dim, marginTop: 8 }}>Enter the admin password to continue.</div>
+    </div>
+  );
+}
+
+function PasswordField({
+  value,
+  invalid,
+  onChange,
+  onSubmit,
+}: {
+  value: string;
+  invalid: boolean;
+  onChange: (next: string) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div style={{ margin: "22px 0 6px" }}>
+      <input
+        type="password"
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+        placeholder="Admin password"
+        style={{
+          width: "100%",
+          border: `1px solid ${invalid ? COLOR.red : "rgba(0,0,0,.2)"}`,
+          background: "#fffdf4",
+          borderRadius: 10,
+          padding: "13px 16px",
+          fontSize: 16,
+          fontWeight: 600,
+          letterSpacing: 1,
+          color: COLOR.ink,
+          outline: "none",
+        }}
+      />
+    </div>
+  );
+}
+
+function UnlockButton({ enabled, checking, onClick }: { enabled: boolean; checking: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={!enabled}
+      style={{
+        width: "100%",
+        marginTop: 12,
+        border: "none",
+        background: enabled ? GRADIENT.primary : "rgba(0,0,0,.06)",
+        color: enabled ? COLOR.abyss : COLOR.dim,
+        fontFamily: "var(--font-orbitron), sans-serif",
+        fontWeight: 700,
+        fontSize: 14,
+        letterSpacing: 1.5,
+        textTransform: "uppercase",
+        padding: 15,
+        borderRadius: 11,
+        cursor: enabled ? "pointer" : "default",
+        boxShadow: enabled ? "0 6px 18px rgba(34,24,8,.18)" : "none",
+      }}
+    >
+      {checking ? "Verifying…" : "Unlock ▸"}
+    </button>
+  );
+}
+
+// ── Console ────────────────────────────────────────────────────────────────
+
+/** Loads the room registry, polls it on an interval, and exposes a delete. */
+function useRoomRegistry(password: string) {
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const load = useCallback(async () => {
+  const reload = useCallback(async () => {
     try {
       const list = await fetchRooms(password);
       setRooms(list);
@@ -151,23 +168,39 @@ function Console({ password, onLogout }: { password: string; onLogout: () => voi
   }, [password]);
 
   useEffect(() => {
-    load();
-    timer.current = setInterval(load, POLL_MS);
+    reload();
+    timer.current = setInterval(reload, POLL_MS);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [load]);
+  }, [reload]);
+
+  const removeRoom = useCallback(
+    async (id: string) => {
+      await deleteRoom(id, password);
+      setRooms((prev) => prev.filter((r) => r.id !== id));
+    },
+    [password],
+  );
+
+  return { rooms, error, setError, loading, reload, removeRoom };
+}
+
+function deleteWarning(room: RoomSummary): string {
+  return room.players.some((p) => p.connected)
+    ? `Room ${room.id} has players connected right now. Delete it anyway? Everyone will be kicked.`
+    : `Delete room ${room.id}? This wipes its state permanently.`;
+}
+
+function Console({ password, onLogout }: { password: string; onLogout: () => void }) {
+  const { rooms, error, setError, loading, reload, removeRoom } = useRoomRegistry(password);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const remove = async (room: RoomSummary) => {
-    const live = room.players.some((p) => p.connected);
-    const warning = live
-      ? `Room ${room.id} has players connected right now. Delete it anyway? Everyone will be kicked.`
-      : `Delete room ${room.id}? This wipes its state permanently.`;
-    if (!confirm(warning)) return;
+    if (!confirm(deleteWarning(room))) return;
     setBusy(room.id);
     try {
-      await deleteRoom(room.id, password);
-      setRooms((prev) => prev.filter((r) => r.id !== room.id));
+      await removeRoom(room.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed.");
     } finally {
@@ -177,33 +210,9 @@ function Console({ password, onLogout }: { password: string; onLogout: () => voi
 
   return (
     <div style={{ position: "relative", width: "100%", maxWidth: 860, marginTop: "6vh" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <div className="font-display" style={{ fontWeight: 800, fontSize: 26, letterSpacing: 1, color: COLOR.ink, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}>
-            ROOM CONTROL
-          </div>
-          <div style={{ fontSize: 13, color: COLOR.dim, marginTop: 4 }}>
-            {loading ? "Loading…" : `${rooms.length} active room${rooms.length === 1 ? "" : "s"} · refreshes every ${POLL_MS / 1000}s`}
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={load} style={chip(COLOR.cyan)}>↻ Refresh</button>
-          <button onClick={onLogout} style={chip(COLOR.dim)}>Lock</button>
-        </div>
-      </div>
-
-      {error && (
-        <div style={{ background: "rgba(200,32,42,.12)", border: "1px solid rgba(200,32,42,.5)", color: "#a01821", padding: "10px 14px", borderRadius: 10, fontWeight: 600, marginBottom: 16 }}>
-          {error}
-        </div>
-      )}
-
-      {!loading && rooms.length === 0 && !error && (
-        <div style={{ textAlign: "center", color: COLOR.dim, padding: "60px 20px", background: GRADIENT.panel, border: "1px solid rgba(0,0,0,.15)", borderRadius: 14 }}>
-          No active rooms right now.
-        </div>
-      )}
-
+      <ConsoleHeader count={rooms.length} loading={loading} onRefresh={reload} onLogout={onLogout} />
+      {error && <ErrorBanner message={error} />}
+      {!loading && rooms.length === 0 && !error && <EmptyState />}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {rooms.map((room) => (
           <RoomRow key={room.id} room={room} busy={busy === room.id} onDelete={() => remove(room)} />
@@ -213,23 +222,59 @@ function Console({ password, onLogout }: { password: string; onLogout: () => voi
   );
 }
 
+function ConsoleHeader({
+  count,
+  loading,
+  onRefresh,
+  onLogout,
+}: {
+  count: number;
+  loading: boolean;
+  onRefresh: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, gap: 12, flexWrap: "wrap" }}>
+      <div>
+        <div className="font-display" style={{ fontWeight: 800, fontSize: 26, letterSpacing: 1, color: COLOR.ink, textShadow: "1px 1px 0 rgba(0,0,0,.15)" }}>
+          ROOM CONTROL
+        </div>
+        <div style={{ fontSize: 13, color: COLOR.dim, marginTop: 4 }}>
+          {loading ? "Loading…" : `${count} active room${count === 1 ? "" : "s"} · refreshes every ${POLL_MS / 1000}s`}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={onRefresh} style={chip(COLOR.cyan)}>↻ Refresh</button>
+        <button onClick={onLogout} style={chip(COLOR.dim)}>Lock</button>
+      </div>
+    </div>
+  );
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div style={{ background: "rgba(200,32,42,.12)", border: "1px solid rgba(200,32,42,.5)", color: "#a01821", padding: "10px 14px", borderRadius: 10, fontWeight: 600, marginBottom: 16 }}>
+      {message}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div style={{ textAlign: "center", color: COLOR.dim, padding: "60px 20px", background: GRADIENT.panel, border: "1px solid rgba(0,0,0,.15)", borderRadius: 14 }}>
+      No active rooms right now.
+    </div>
+  );
+}
+
+// ── Room row ───────────────────────────────────────────────────────────────
+
 function RoomRow({ room, busy, onDelete }: { room: RoomSummary; busy: boolean; onDelete: () => void }) {
   const phase = PHASE_LABEL[room.phase];
   const connected = room.players.filter((p) => p.connected).length;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-        background: GRADIENT.panel,
-        border: "1px solid rgba(0,0,0,.15)",
-        borderRadius: 14,
-        padding: "16px 18px",
-        flexWrap: "wrap",
-      }}
-    >
+    <div style={roomRowStyle}>
       <div style={{ minWidth: 90 }}>
         <div className="font-display" style={{ fontSize: 22, fontWeight: 800, letterSpacing: 3, color: COLOR.ink }}>
           {room.id}
@@ -244,39 +289,77 @@ function RoomRow({ room, busy, onDelete }: { room: RoomSummary; busy: boolean; o
           {room.players.length} player{room.players.length === 1 ? "" : "s"} · {connected} online
           {room.hostName && <span style={{ color: COLOR.dim }}> · host {room.hostName}</span>}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {room.players.length === 0 && <span style={{ fontSize: 12, color: COLOR.dim }}>empty</span>}
-          {room.players.map((p, i) => (
-            <span
-              key={i}
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "3px 9px",
-                borderRadius: 7,
-                border: `1px solid ${p.connected ? `${COLOR.green}66` : "rgba(0,0,0,.15)"}`,
-                background: p.connected ? `${COLOR.green}1a` : "rgba(0,0,0,.04)",
-                color: p.connected ? COLOR.green : COLOR.dim,
-              }}
-            >
-              {p.connected ? "● " : "○ "}
-              {p.name}
-            </span>
-          ))}
-        </div>
+        <PlayerChips players={room.players} />
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <a href={`/room/${room.id}`} target="_blank" rel="noreferrer" style={{ ...chip(COLOR.cyan), textDecoration: "none" }}>
-          Open ↗
-        </a>
-        <button onClick={onDelete} disabled={busy} style={{ ...chip(COLOR.red), opacity: busy ? 0.5 : 1, cursor: busy ? "default" : "pointer" }}>
-          {busy ? "Deleting…" : "Delete"}
-        </button>
-      </div>
+      <RoomActions roomId={room.id} busy={busy} onDelete={onDelete} />
     </div>
   );
 }
+
+function PlayerChips({ players }: { players: RoomSummary["players"] }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {players.length === 0 && <span style={{ fontSize: 12, color: COLOR.dim }}>empty</span>}
+      {players.map((p, i) => (
+        <span
+          key={i}
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            padding: "3px 9px",
+            borderRadius: 7,
+            border: `1px solid ${p.connected ? `${COLOR.green}66` : "rgba(0,0,0,.15)"}`,
+            background: p.connected ? `${COLOR.green}1a` : "rgba(0,0,0,.04)",
+            color: p.connected ? COLOR.green : COLOR.dim,
+          }}
+        >
+          {p.connected ? "● " : "○ "}
+          {p.name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function RoomActions({ roomId, busy, onDelete }: { roomId: string; busy: boolean; onDelete: () => void }) {
+  return (
+    <div style={{ display: "flex", gap: 8 }}>
+      <a href={`/room/${roomId}`} target="_blank" rel="noreferrer" style={{ ...chip(COLOR.cyan), textDecoration: "none" }}>
+        Open ↗
+      </a>
+      <button onClick={onDelete} disabled={busy} style={{ ...chip(COLOR.red), opacity: busy ? 0.5 : 1, cursor: busy ? "default" : "pointer" }}>
+        {busy ? "Deleting…" : "Delete"}
+      </button>
+    </div>
+  );
+}
+
+// ── Shared styles ──────────────────────────────────────────────────────────
+
+const gatePanelStyle: React.CSSProperties = {
+  position: "relative",
+  width: "100%",
+  maxWidth: 420,
+  background: GRADIENT.panel,
+  border: "1px solid rgba(0,0,0,.15)",
+  borderRadius: 16,
+  boxShadow: "0 12px 30px rgba(34,24,8,.3)",
+  padding: "38px 34px 32px",
+  animation: "popIn .3s ease",
+  marginTop: "12vh",
+};
+
+const roomRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 16,
+  background: GRADIENT.panel,
+  border: "1px solid rgba(0,0,0,.15)",
+  borderRadius: 14,
+  padding: "16px 18px",
+  flexWrap: "wrap",
+};
 
 function chip(color: string): React.CSSProperties {
   return {

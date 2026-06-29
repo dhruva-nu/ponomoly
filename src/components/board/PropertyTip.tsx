@@ -38,10 +38,7 @@ export default function PropertyTip({
   const dueNow = isOwned ? rentFor(spaceIndex, state.owners, state.dice.d1 + state.dice.d2, state.buildings, state.mortgaged) : 0;
   const label = buildLabel(space.t, state.buildings[spaceIndex] || 0);
 
-  const viewportW = typeof window !== "undefined" ? window.innerWidth : 1920;
-  const viewportH = typeof window !== "undefined" ? window.innerHeight : 1080;
-  const left = Math.max(8, Math.min(x + 16, viewportW - TIP_WIDTH - 8));
-  const top = Math.max(8, Math.min(y + 16, viewportH - 360));
+  const { left, top } = tipPosition(x, y);
 
   return (
     <div style={{
@@ -52,30 +49,61 @@ export default function PropertyTip({
     }}>
       <div style={{ height: 10, background: spaceColor(spaceIndex), borderBottom: "1px solid rgba(0,0,0,.4)" }} />
       <div style={{ padding: "12px 14px 14px" }}>
-        <div className="font-display" style={{ fontWeight: 700, fontSize: 16, color: COLOR.ink, lineHeight: 1.1 }}>{space.name}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
-          <span style={{ color: COLOR.cyan }}>{TYPE_LABEL[space.t]}</span>
-          {space.price ? <span style={{ color: COLOR.muted }}>Price ${space.price}</span> : null}
-        </div>
+        <TipHeader name={space.name} typeLabel={TYPE_LABEL[space.t]} price={space.price} />
 
         {isOwned && (
           <OwnedBanner mortgaged={mortgaged} youOwn={youOwn} dueNow={dueNow} isUtility={space.t === "util"} />
         )}
 
-        <div style={{ marginTop: 10, borderTop: "1px solid rgba(0,0,0,.14)", paddingTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
-          {rentRows(spaceIndex).map((row) => (
-            <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-              <span style={{ color: COLOR.muted, fontWeight: 500 }}>{row.label}</span>
-              <span className="font-display" style={{ color: row.hot ? "#ffb84d" : COLOR.text, fontWeight: 700, letterSpacing: 0.3 }}>{row.value}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(0,0,0,.14)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 600 }}>
-          <span style={{ color: ownerName ? COLOR.rose : COLOR.green }}>{ownerName ? `Owned by ${ownerName}` : "Unowned"}</span>
-          {label && <span style={{ color: "#c8202a" }}>{label}</span>}
-        </div>
+        <RentBreakdown spaceIndex={spaceIndex} />
+        <TipFooter ownerName={ownerName} label={label} />
       </div>
+    </div>
+  );
+}
+
+/** Clamps the tooltip's screen position so it stays within the viewport. */
+function tipPosition(x: number, y: number): { left: number; top: number } {
+  const viewportW = typeof window !== "undefined" ? window.innerWidth : 1920;
+  const viewportH = typeof window !== "undefined" ? window.innerHeight : 1080;
+  const left = Math.max(8, Math.min(x + 16, viewportW - TIP_WIDTH - 8));
+  const top = Math.max(8, Math.min(y + 16, viewportH - 360));
+  return { left, top };
+}
+
+/** Title row: property name plus its type label and price. */
+function TipHeader({ name, typeLabel, price }: { name: string; typeLabel: string; price?: number }) {
+  return (
+    <>
+      <div className="font-display" style={{ fontWeight: 700, fontSize: 16, color: COLOR.ink, lineHeight: 1.1 }}>{name}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+        <span style={{ color: COLOR.cyan }}>{typeLabel}</span>
+        {price ? <span style={{ color: COLOR.muted }}>Price ${price}</span> : null}
+      </div>
+    </>
+  );
+}
+
+/** Per-improvement-level rent table for the space. */
+function RentBreakdown({ spaceIndex }: { spaceIndex: number }) {
+  return (
+    <div style={{ marginTop: 10, borderTop: "1px solid rgba(0,0,0,.14)", paddingTop: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+      {rentRows(spaceIndex).map((row) => (
+        <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+          <span style={{ color: COLOR.muted, fontWeight: 500 }}>{row.label}</span>
+          <span className="font-display" style={{ color: row.hot ? "#ffb84d" : COLOR.text, fontWeight: 700, letterSpacing: 0.3 }}>{row.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Footer row: ownership status and current improvement label. */
+function TipFooter({ ownerName, label }: { ownerName: string | null; label: string | null }) {
+  return (
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(0,0,0,.14)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 600 }}>
+      <span style={{ color: ownerName ? COLOR.rose : COLOR.green }}>{ownerName ? `Owned by ${ownerName}` : "Unowned"}</span>
+      {label && <span style={{ color: "#c8202a" }}>{label}</span>}
     </div>
   );
 }

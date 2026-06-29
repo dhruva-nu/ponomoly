@@ -49,24 +49,7 @@ export default function RentModal({
           {space.name}
         </div>
         <div style={{ ...eyebrowStyle(COLOR.rose), marginTop: 6 }}>Rent due to {ownerName}</div>
-        <div style={{ margin: "18px 4px 4px", borderTop: "1px solid rgba(0,0,0,.12)", borderBottom: "1px solid rgba(0,0,0,.12)", padding: "14px 2px" }}>
-          <div style={{ color: COLOR.slate, fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>Amount</div>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 8 }}>
-            {reduced && (
-              <span className="font-display" style={{ fontWeight: 600, fontSize: 16, color: COLOR.slate, textDecoration: "line-through" }}>
-                ${original}
-              </span>
-            )}
-            <span className="font-display" style={{ fontWeight: 700, fontSize: 28, color: waived ? COLOR.green : COLOR.rose }}>
-              ${amount}
-            </span>
-          </div>
-          {reduced && (
-            <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.green, marginTop: 4 }}>
-              {waived ? `${ownerName} waived your rent` : `${ownerName} cut your rent`}
-            </div>
-          )}
-        </div>
+        <AmountFrame amount={amount} original={original} reduced={reduced} waived={waived} ownerName={ownerName} />
         <div style={{ marginTop: 12, fontWeight: 600, fontSize: 13, letterSpacing: 0.4, color: cannotCover ? COLOR.rose : COLOR.muted }}>
           {statusLine}
         </div>
@@ -80,6 +63,30 @@ export default function RentModal({
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** Bordered amount panel: the rent due, the struck-through original, and a discount note. */
+function AmountFrame({ amount, original, reduced, waived, ownerName }: { amount: number; original: number; reduced: boolean; waived: boolean; ownerName: string }) {
+  return (
+    <div style={{ margin: "18px 4px 4px", borderTop: "1px solid rgba(0,0,0,.12)", borderBottom: "1px solid rgba(0,0,0,.12)", padding: "14px 2px" }}>
+      <div style={{ color: COLOR.slate, fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>Amount</div>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 8 }}>
+        {reduced && (
+          <span className="font-display" style={{ fontWeight: 600, fontSize: 16, color: COLOR.slate, textDecoration: "line-through" }}>
+            ${original}
+          </span>
+        )}
+        <span className="font-display" style={{ fontWeight: 700, fontSize: 28, color: waived ? COLOR.green : COLOR.rose }}>
+          ${amount}
+        </span>
+      </div>
+      {reduced && (
+        <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.green, marginTop: 4 }}>
+          {waived ? `${ownerName} waived your rent` : `${ownerName} cut your rent`}
+        </div>
+      )}
+    </div>
   );
 }
 
