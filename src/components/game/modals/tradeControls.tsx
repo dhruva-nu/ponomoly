@@ -63,6 +63,20 @@ const ruleSelect: CSSProperties = {
   outline: "none",
 };
 const ruleNumber: CSSProperties = { ...ruleSelect, width: 56 };
+const ruleRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  flexWrap: "wrap",
+  background: "#f6efdd",
+  border: "1px solid rgba(0,0,0,.15)",
+  borderLeft: `5px solid ${COLOR.purple}`,
+  borderRadius: 7,
+  padding: "7px 9px",
+};
+const ruleLabel: CSSProperties = { fontSize: 11, color: COLOR.muted, fontWeight: 600 };
+
+type RuleChange = (next: TradeRentRule) => void;
 
 /** An editable custom rent clause: who pays less, how much, on which of the
  *  landlord's properties, and for how long. `payeeProps` is the property set the
@@ -77,42 +91,53 @@ export function RentRuleRow({
   rule: TradeRentRule;
   themName: string;
   payeeProps: number[];
-  onChange: (next: TradeRentRule) => void;
+  onChange: RuleChange;
   onRemove: () => void;
 }) {
   // Distinct color groups present among the landlord's properties.
   const colors = [...new Set(payeeProps.filter((p) => BOARD[p].t === "prop").map((p) => BOARD[p].c!))];
   const sites = [...payeeProps];
 
-  const setScopeKind = (kind: RentRuleScope["kind"]) => {
-    if (kind === "color") onChange({ ...rule, scope: { kind: "color", color: colors[0] ?? "" } });
-    else if (kind === "site") onChange({ ...rule, scope: { kind: "site", space: sites[0] ?? -1 } });
-    else onChange({ ...rule, scope: { kind: "all" } });
-  };
-
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        flexWrap: "wrap",
-        background: "#f6efdd",
-        border: "1px solid rgba(0,0,0,.15)",
-        borderLeft: `5px solid ${COLOR.purple}`,
-        borderRadius: 7,
-        padding: "7px 9px",
-      }}
+    <div style={ruleRowStyle}>
+      <BeneficiarySelect rule={rule} themName={themName} onChange={onChange} />
+      <RentModeControls rule={rule} onChange={onChange} />
+      <span style={ruleLabel}>on</span>
+      <ScopeControls rule={rule} colors={colors} sites={sites} onChange={onChange} />
+      <span style={ruleLabel}>for</span>
+      <input
+        type="number"
+        min={1}
+        value={rule.turns}
+        onChange={(e) => onChange({ ...rule, turns: Math.max(1, Math.round(Number(e.target.value)) || 1) })}
+        style={ruleNumber}
+        aria-label="Visits the clause lasts"
+      />
+      <span style={ruleLabel}>visits</span>
+      <RemoveClauseButton onRemove={onRemove} />
+    </div>
+  );
+}
+
+/** Picks which side of the trade gets the rent break (resets scope to all). */
+function BeneficiarySelect({ rule, themName, onChange }: { rule: TradeRentRule; themName: string; onChange: RuleChange }) {
+  return (
+    <select
+      value={rule.beneficiary}
+      onChange={(e) => onChange({ ...rule, beneficiary: e.target.value as "from" | "to", scope: { kind: "all" } })}
+      style={ruleSelect}
+      aria-label="Who pays the reduced rent"
     >
-      <select
-        value={rule.beneficiary}
-        onChange={(e) => onChange({ ...rule, beneficiary: e.target.value as "from" | "to", scope: { kind: "all" } })}
-        style={ruleSelect}
-        aria-label="Who pays the reduced rent"
-      >
-        <option value="from">You pay</option>
-        <option value="to">{themName} pays</option>
-      </select>
+      <option value="from">You pay</option>
+      <option value="to">{themName} pays</option>
+    </select>
+  );
+}
+
+/** The clause type (waive / percent / flat cap) plus its amount input. */
+function RentModeControls({ rule, onChange }: { rule: TradeRentRule; onChange: RuleChange }) {
+  return (
+    <>
       <select
         value={rule.mode}
         onChange={(e) => onChange({ ...rule, mode: e.target.value as RentRuleMode })}
@@ -134,7 +159,30 @@ export function RentRuleRow({
           aria-label={rule.mode === "percent" ? "Percent of rent" : "Flat rent cap"}
         />
       )}
-      <span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 600 }}>on</span>
+    </>
+  );
+}
+
+/** The scope picker (all / color group / one site) and its dependent selector. */
+function ScopeControls({
+  rule,
+  colors,
+  sites,
+  onChange,
+}: {
+  rule: TradeRentRule;
+  colors: string[];
+  sites: number[];
+  onChange: RuleChange;
+}) {
+  const setScopeKind = (kind: RentRuleScope["kind"]) => {
+    if (kind === "color") onChange({ ...rule, scope: { kind: "color", color: colors[0] ?? "" } });
+    else if (kind === "site") onChange({ ...rule, scope: { kind: "site", space: sites[0] ?? -1 } });
+    else onChange({ ...rule, scope: { kind: "all" } });
+  };
+
+  return (
+    <>
       <select
         value={rule.scope.kind}
         onChange={(e) => setScopeKind(e.target.value as RentRuleScope["kind"])}
@@ -169,34 +217,29 @@ export function RentRuleRow({
           ))}
         </select>
       )}
-      <span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 600 }}>for</span>
-      <input
-        type="number"
-        min={1}
-        value={rule.turns}
-        onChange={(e) => onChange({ ...rule, turns: Math.max(1, Math.round(Number(e.target.value)) || 1) })}
-        style={ruleNumber}
-        aria-label="Visits the clause lasts"
-      />
-      <span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 600 }}>visits</span>
-      <button
-        onClick={onRemove}
-        style={{
-          marginLeft: "auto",
-          border: "1px solid rgba(255,128,144,.4)",
-          background: "transparent",
-          color: COLOR.rose,
-          fontWeight: 700,
-          fontSize: 12,
-          borderRadius: 7,
-          padding: "4px 9px",
-          cursor: "pointer",
-        }}
-        aria-label="Remove clause"
-      >
-        ✕
-      </button>
-    </div>
+    </>
+  );
+}
+
+function RemoveClauseButton({ onRemove }: { onRemove: () => void }) {
+  return (
+    <button
+      onClick={onRemove}
+      style={{
+        marginLeft: "auto",
+        border: "1px solid rgba(255,128,144,.4)",
+        background: "transparent",
+        color: COLOR.rose,
+        fontWeight: 700,
+        fontSize: 12,
+        borderRadius: 7,
+        padding: "4px 9px",
+        cursor: "pointer",
+      }}
+      aria-label="Remove clause"
+    >
+      ✕
+    </button>
   );
 }
 

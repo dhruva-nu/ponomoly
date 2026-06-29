@@ -54,6 +54,73 @@ export interface BoardConfig {
   spaces: Omit<Space, "idx" | "pos">[];
 }
 
+type SpaceConfig = Omit<Space, "idx" | "pos">;
+
+const isNonNegNumber = (v: unknown): v is number =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0;
+
+/** Validate the price-like numeric fields shared by every space type. */
+function validateSpaceNumbers(space: SpaceConfig, idx: number): void {
+  for (const key of ["price", "mortgage", "unmortgage", "housePrice"] as const) {
+    const v = space[key];
+    if (v !== undefined && !isNonNegNumber(v)) {
+      throw new Error(`Space ${idx}: ${key} must be a non-negative number.`);
+    }
+  }
+}
+
+/** Validate the color, price and full rent schedule a property space requires. */
+function validatePropSpace(space: SpaceConfig, idx: number): void {
+  if (typeof space.c !== "string" || space.c.length === 0) {
+    throw new Error(`Space ${idx} (${space.name}): a property must have a color.`);
+  }
+  if (typeof space.price !== "number" || space.price <= 0) {
+    throw new Error(`Space ${idx} (${space.name}): a property must have a positive price.`);
+  }
+  const rent = space.rent as Partial<PropRent> | undefined;
+  if (!rent || typeof rent !== "object") {
+    throw new Error(`Space ${idx} (${space.name}): a property must define a rent schedule.`);
+  }
+  for (const key of PROP_RENT_KEYS) {
+    if (!isNonNegNumber(rent[key])) {
+      throw new Error(`Space ${idx} (${space.name}): rent.${key} must be a non-negative number.`);
+    }
+  }
+  if (!isNonNegNumber(rent.set)) {
+    throw new Error(`Space ${idx} (${space.name}): rent.set must be a non-negative number.`);
+  }
+}
+
+/** Validate the per-station rent schedule a railroad space requires. */
+function validateRailSpace(space: SpaceConfig, idx: number): void {
+  const rent = space.rent as Partial<RailRent> | undefined;
+  if (!rent || typeof rent !== "object") {
+    throw new Error(`Space ${idx} (${space.name}): a railroad must define a rent schedule.`);
+  }
+  for (const stations of [1, 2, 3, 4] as const) {
+    if (!isNonNegNumber(rent[stations])) {
+      throw new Error(`Space ${idx} (${space.name}): rent.${stations} must be a non-negative number.`);
+    }
+  }
+}
+
+/** Validate a single board space: shared fields plus type-specific rent rules. */
+function validateSpace(space: SpaceConfig, idx: number): void {
+  if (!space || typeof space !== "object") throw new Error(`Space ${idx}: not an object.`);
+  if (!SPACE_TYPES.includes(space.t)) throw new Error(`Space ${idx}: invalid type "${space.t}".`);
+  if (typeof space.name !== "string" || space.name.length === 0) {
+    throw new Error(`Space ${idx}: name must be a non-empty string.`);
+  }
+  validateSpaceNumbers(space, idx);
+  if (space.t === "prop") {
+    validatePropSpace(space, idx);
+  } else if (space.t === "rail") {
+    validateRailSpace(space, idx);
+  } else if (space.rent !== undefined && typeof space.rent !== "object") {
+    throw new Error(`Space ${idx}: rent must be a rent schedule object.`);
+  }
+}
+
 /**
  * Validate a board config so a malformed edit can never reach the running game.
  * Throws a descriptive Error on the first problem. Run at import time below (so a
@@ -68,54 +135,7 @@ export function validateBoardConfig(config: unknown): asserts config is BoardCon
   if (!Array.isArray(c.spaces) || c.spaces.length !== EXPECTED_SPACES) {
     throw new Error(`Board config: spaces must be an array of exactly ${EXPECTED_SPACES} entries.`);
   }
-  const isNonNegNumber = (v: unknown): v is number =>
-    typeof v === "number" && Number.isFinite(v) && v >= 0;
-
-  c.spaces.forEach((space, idx) => {
-    if (!space || typeof space !== "object") throw new Error(`Space ${idx}: not an object.`);
-    if (!SPACE_TYPES.includes(space.t)) throw new Error(`Space ${idx}: invalid type "${space.t}".`);
-    if (typeof space.name !== "string" || space.name.length === 0) {
-      throw new Error(`Space ${idx}: name must be a non-empty string.`);
-    }
-    for (const key of ["price", "mortgage", "unmortgage", "housePrice"] as const) {
-      const v = space[key];
-      if (v !== undefined && !isNonNegNumber(v)) {
-        throw new Error(`Space ${idx}: ${key} must be a non-negative number.`);
-      }
-    }
-    if (space.t === "prop") {
-      if (typeof space.c !== "string" || space.c.length === 0) {
-        throw new Error(`Space ${idx} (${space.name}): a property must have a color.`);
-      }
-      if (typeof space.price !== "number" || space.price <= 0) {
-        throw new Error(`Space ${idx} (${space.name}): a property must have a positive price.`);
-      }
-      const rent = space.rent as Partial<PropRent> | undefined;
-      if (!rent || typeof rent !== "object") {
-        throw new Error(`Space ${idx} (${space.name}): a property must define a rent schedule.`);
-      }
-      for (const key of PROP_RENT_KEYS) {
-        if (!isNonNegNumber(rent[key])) {
-          throw new Error(`Space ${idx} (${space.name}): rent.${key} must be a non-negative number.`);
-        }
-      }
-      if (!isNonNegNumber((rent as Partial<PropRent>).set)) {
-        throw new Error(`Space ${idx} (${space.name}): rent.set must be a non-negative number.`);
-      }
-    } else if (space.t === "rail") {
-      const rent = space.rent as Partial<RailRent> | undefined;
-      if (!rent || typeof rent !== "object") {
-        throw new Error(`Space ${idx} (${space.name}): a railroad must define a rent schedule.`);
-      }
-      for (const stations of [1, 2, 3, 4] as const) {
-        if (!isNonNegNumber(rent[stations])) {
-          throw new Error(`Space ${idx} (${space.name}): rent.${stations} must be a non-negative number.`);
-        }
-      }
-    } else if (space.rent !== undefined && typeof space.rent !== "object") {
-      throw new Error(`Space ${idx}: rent must be a rent schedule object.`);
-    }
-  });
+  c.spaces.forEach(validateSpace);
   // Special-tile placement the engine relies on (jail cell index, go-to-jail).
   if (c.spaces[0].t !== "go") throw new Error("Board config: space 0 must be GO.");
   if (c.spaces[10].t !== "jail") throw new Error("Board config: space 10 must be JAIL.");
