@@ -29,6 +29,18 @@ everyone. A singleton `Registry` Durable Object tracks active rooms for the
 and owner "directives" (rent waivers/discounts). The board, types, and rent table
 already accommodate these.
 
+## Documentation
+
+Full end-to-end documentation lives in [`docs/`](./docs/README.md):
+
+- [Architecture](./docs/architecture.md) — the three layers and the action lifecycle
+- [Game engine](./docs/game-engine.md) — `applyAction`, the rules, every action module
+- [Protocol](./docs/protocol.md) — the WebSocket actions, admin commands, and state shape
+- [Backend](./docs/backend.md) — the Worker, `GameRoom`/`Registry` Durable Objects, auth
+- [Frontend](./docs/frontend.md) — routes, the `usePartyGame` hook, the UI flow
+- [Configuration](./docs/configuration.md) — the board & card JSON, the board editor
+- [Development](./docs/development.md) — run, test, and deploy
+
 ## Project layout
 
 | Path | Role |
