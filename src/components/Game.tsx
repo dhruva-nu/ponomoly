@@ -10,6 +10,7 @@ import Confetti from "./game/Confetti";
 import GameToasts from "./game/GameToasts";
 import { deriveGameView, type GameView } from "./game/gameView";
 import { useGameNotifications } from "./game/useGameNotifications";
+import { useTurnReveal } from "./game/useTurnReveal";
 
 /** Drive the roll button: fire the action and hold the dice/modals briefly so the
  *  roll animation can play out before prompts reappear. */
@@ -80,7 +81,8 @@ export default function Game({
 }) {
   const view = deriveGameView(state, you);
   const { rolling, holdModals, doRoll } = useDiceRoll(view.canRoll, send);
-  const { cardAck, goAck, confetti, tradeAck } = useGameNotifications(state);
+  const reveal = useTurnReveal(state);
+  const { cardAck, goAck, confetti, tradeAck } = useGameNotifications(state, reveal.lastCard);
 
   const [rentMinimized, setRentMinimized] = useState(false);
   const [buildTarget, setBuildTarget] = useState<number | null>(null);
@@ -102,6 +104,7 @@ export default function Game({
         rolling={rolling}
         rollLabel={rollButtonLabel(view, state, rolling)}
         roomId={roomId}
+        logLines={reveal.log}
         onRoll={doRoll}
         onOpenTrade={() => setShowTrade(true)}
         onBuild={setBuildTarget}

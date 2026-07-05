@@ -6,10 +6,14 @@ import { BOARD } from "@game/board";
 
 // How long each single-tile hop takes. The token steps one space at a time so
 // players can follow a pawn travelling around the board instead of teleporting.
-const STEP_MS = 130;
+export const STEP_MS = 130;
+
+// The dice tumble for ~650ms; hold the pawn until they've settled so the roll
+// reads first, then the token starts walking (#42 sequencing).
+export const DICE_SETTLE_MS = 700;
 
 /** Snapshot of every player's true board position, keyed by player id. */
-function targetPositions(state: GameState): Record<string, number> {
+export function targetPositions(state: GameState): Record<string, number> {
   return Object.fromEntries(state.players.map((p) => [p.id, p.position]));
 }
 
@@ -35,19 +39,25 @@ function stepToward(current: Record<string, number>, targets: Record<string, num
 export function usePawnPositions(state: GameState): Record<string, number> {
   const [display, setDisplay] = useState<Record<string, number>>(() => targetPositions(state));
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const first = useRef(true);
   const positionKey = state.players.map((p) => `${p.id}:${p.position}`).join(",");
 
   useEffect(() => {
+    // Skip the join snapshot: seat tokens where they already stand, no animation.
+    if (first.current) { first.current = false; setDisplay(targetPositions(state)); return; }
     const targets = targetPositions(state);
-    if (timer.current) clearInterval(timer.current);
-    timer.current = setInterval(() => {
-      setDisplay((cur) => {
-        const { next, done } = stepToward(cur, targets);
-        if (done && timer.current) { clearInterval(timer.current); timer.current = null; }
-        return next;
-      });
-    }, STEP_MS);
-    return () => { if (timer.current) clearInterval(timer.current); };
+    const walk = () => setDisplay((cur) => {
+      const { next, done } = stepToward(cur, targets);
+      if (done && timer.current) { clearInterval(timer.current); timer.current = null; }
+      return next;
+    });
+    // Let the dice land first, then step one tile at a time to the target.
+    startTimer.current = setTimeout(() => { timer.current = setInterval(walk, STEP_MS); }, DICE_SETTLE_MS);
+    return () => {
+      if (startTimer.current) clearTimeout(startTimer.current);
+      if (timer.current) clearInterval(timer.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positionKey]);
 

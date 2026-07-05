@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { GameState, PendingTrade } from "@game/types";
+import type { GameState, PendingTrade, Player } from "@game/types";
 import { BOARD } from "@game/board";
 
 export interface TradeAck {
@@ -32,15 +32,16 @@ function describeSide(props: number[], cash: number): string {
 }
 
 /** Pop the drawn Chance / Community Chest card for every player. Skips the join
- *  snapshot, then fires once each time the draw id changes. */
-function useCardAck(state: GameState): CardAck | null {
+ *  snapshot, then fires once each time the draw id changes. `card` is the reveal-
+ *  gated card (see useTurnReveal) so the popup lands after the pawn finishes
+ *  moving, not the instant the roll broadcast arrives (#42). */
+function useCardAck(card: GameState["lastCard"], players: Player[]): CardAck | null {
   const [cardAck, setCardAck] = useState<CardAck | null>(null);
   const initRef = useRef(false);
   const lastIdRef = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const card = state.lastCard;
     const id = card?.id ?? 0;
     if (!initRef.current) {
       initRef.current = true;
@@ -49,10 +50,10 @@ function useCardAck(state: GameState): CardAck | null {
     }
     if (!card || id === lastIdRef.current) return;
     lastIdRef.current = id;
-    setCardAck({ deck: card.deck, text: card.text, name: state.players[card.player]?.name ?? "A player" });
+    setCardAck({ deck: card.deck, text: card.text, name: players[card.player]?.name ?? "A player" });
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCardAck(null), 4500);
-  }, [state.lastCard, state.players]);
+  }, [card, players]);
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return cardAck;
@@ -127,9 +128,10 @@ function useTradeCelebrations(state: GameState): { confetti: number; tradeAck: T
 }
 
 /** All in-game popups derived from the shared state: the confetti trigger and the
- *  trade / GO / drawn-card toasts. Bundled so the Game screen stays declarative. */
-export function useGameNotifications(state: GameState) {
-  const cardAck = useCardAck(state);
+ *  trade / GO / drawn-card toasts. Bundled so the Game screen stays declarative.
+ *  `revealedCard` is the reveal-gated card so its popup waits for the pawn. */
+export function useGameNotifications(state: GameState, revealedCard: GameState["lastCard"]) {
+  const cardAck = useCardAck(revealedCard, state.players);
   const goAck = useGoAck(state);
   const { confetti, tradeAck } = useTradeCelebrations(state);
   return { cardAck, goAck, confetti, tradeAck };
