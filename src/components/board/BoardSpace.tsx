@@ -10,6 +10,9 @@ const CORNER_TYPES = new Set(["go", "jail", "parking", "gotojail"]);
 export default function BoardSpace({
   space,
   state,
+  pawnPos,
+  turnIndex = -1,
+  highlightSeat = null,
   dimmed = false,
   onHover,
   onHoverMove,
@@ -17,6 +20,12 @@ export default function BoardSpace({
 }: {
   space: Space;
   state: GameState;
+  /** animated display positions keyed by player id (#42) */
+  pawnPos?: Record<string, number>;
+  /** seat index of the player whose turn it is — their pawn glows (#41) */
+  turnIndex?: number;
+  /** seat index currently hovered in the seat column — that pawn glows too (#41) */
+  highlightSeat?: number | null;
   dimmed?: boolean;
   onHover: (spaceIndex: number, event: ReactMouseEvent) => void;
   onHoverMove: (event: ReactMouseEvent) => void;
@@ -25,7 +34,9 @@ export default function BoardSpace({
   const isCorner = CORNER_TYPES.has(space.t);
   const owner = state.owners[space.idx];
   const ownerColor = owner !== undefined && owner !== null && state.players[owner] ? state.players[owner].color : null;
-  const occupants = state.players.filter((player) => player.position === space.idx && !player.bankrupt);
+  const occupants = state.players
+    .map((player, index) => ({ player, index }))
+    .filter(({ player }) => (pawnPos?.[player.id] ?? player.position) === space.idx && !player.bankrupt);
   const level = state.buildings[space.idx] || 0;
   const priceLabel = isOwnable(space.t) && space.price ? `$${space.price}` : "";
 
@@ -53,7 +64,7 @@ export default function BoardSpace({
           MTG
         </div>
       )}
-      <OccupantTokens occupants={occupants} />
+      <OccupantTokens occupants={occupants} turnIndex={turnIndex} highlightSeat={highlightSeat} />
     </div>
   );
 }
@@ -93,20 +104,37 @@ function ColorBand({ color, level }: { color?: string; level: number }) {
   );
 }
 
-/** Player tokens currently standing on this space, lined up along the bottom. */
-function OccupantTokens({ occupants }: { occupants: Player[] }) {
+/** Player tokens currently standing on this space, lined up along the bottom.
+ *  The active player's token (and any hovered seat's token) pulses so everyone
+ *  can spot whose turn it is and where a given player stands (#41). */
+function OccupantTokens({ occupants, turnIndex, highlightSeat }: {
+  occupants: { player: Player; index: number }[];
+  turnIndex: number;
+  highlightSeat: number | null;
+}) {
   return (
     <div style={{ position: "absolute", bottom: 1, left: 0, right: 0, display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "center", pointerEvents: "none" }}>
-      {occupants.map((player) => (
-        <div key={player.id} style={{
-          width: 26, height: 27, borderRadius: "50% 50% 45% 45%", background: "linear-gradient(180deg, #fffdf6, #efe6cd)",
-          border: `2px solid ${player.color}`, display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 14, fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700, color: player.color,
-          boxShadow: `0 2px 4px rgba(0,0,0,.4)`,
-        }}>
+      {occupants.map(({ player, index }) => (
+        <div key={player.id} style={tokenStyle(player.color, index === turnIndex || index === highlightSeat)}>
           {player.token}
         </div>
       ))}
     </div>
   );
+}
+
+/** One pawn's style; highlighted pawns get a pulsing ring in the player's color. */
+function tokenStyle(color: string, highlighted: boolean): React.CSSProperties {
+  return {
+    width: 26, height: 27, borderRadius: "50% 50% 45% 45%", background: "linear-gradient(180deg, #fffdf6, #efe6cd)",
+    border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 14, fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700, color,
+    boxShadow: highlighted
+      ? `0 0 0 2px #fffdf6, 0 0 0 4px ${color}, 0 2px 6px rgba(0,0,0,.45)`
+      : `0 2px 4px rgba(0,0,0,.4)`,
+    transform: highlighted ? "translateY(-3px) scale(1.08)" : undefined,
+    transition: "transform .18s ease, box-shadow .18s ease",
+    animation: highlighted ? "pawnPulse 1.4s ease-in-out infinite" : undefined,
+    zIndex: highlighted ? 2 : 1,
+  };
 }

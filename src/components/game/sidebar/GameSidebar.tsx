@@ -23,6 +23,8 @@ export default function GameSidebar({
   send,
   rolling,
   rollLabel,
+  roomId,
+  logLines,
   onRoll,
   onOpenTrade,
   onBuild,
@@ -33,6 +35,9 @@ export default function GameSidebar({
   send: (action: ClientAction) => void;
   rolling: boolean;
   rollLabel: string;
+  roomId?: string;
+  /** reveal-gated log tail (see useTurnReveal); falls back to the raw log */
+  logLines?: string[];
   onRoll: () => void;
   onOpenTrade: () => void;
   onBuild: (spaceIndex: number) => void;
@@ -79,7 +84,7 @@ export default function GameSidebar({
 
       {view.canSurrender && <SurrenderControl onSurrender={() => send({ type: "surrender" })} />}
 
-      <ActivityLog lines={state.log} />
+      <ActivityLog lines={logLines ?? state.log} room={roomId} gameEnded={state.phase === "ended"} />
     </div>
   );
 }
