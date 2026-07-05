@@ -71,10 +71,12 @@ export default function Game({
   state,
   you,
   send,
+  roomId,
 }: {
   state: GameState;
   you: string | null;
   send: (action: ClientAction) => void;
+  roomId?: string;
 }) {
   const view = deriveGameView(state, you);
   const { rolling, holdModals, doRoll } = useDiceRoll(view.canRoll, send);
@@ -99,6 +101,7 @@ export default function Game({
         send={send}
         rolling={rolling}
         rollLabel={rollButtonLabel(view, state, rolling)}
+        roomId={roomId}
         onRoll={doRoll}
         onOpenTrade={() => setShowTrade(true)}
         onBuild={setBuildTarget}

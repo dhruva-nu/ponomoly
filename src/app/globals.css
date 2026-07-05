@@ -85,6 +85,15 @@ button {
     opacity: 1;
   }
 }
+@keyframes pawnPulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.25);
+  }
+}
 @keyframes gridDrift {
   0% {
     background-position: 0 0, 0 0;

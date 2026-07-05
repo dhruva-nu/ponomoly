@@ -7,6 +7,7 @@ import BoardSpace from "./BoardSpace";
 import CenterHub from "./CenterHub";
 import PlayerSeat from "./PlayerSeat";
 import PropertyTip from "./PropertyTip";
+import { usePawnPositions } from "./usePawnPositions";
 
 const HOVER_DELAY = 1000; // ms before the info tooltip appears
 const FALLBACK_PLAYER: Player = { id: "", name: "", token: "", color: "#c8202a", cash: 0, position: 0, properties: [], connected: true, bankrupt: false, jailed: false, jailTurns: 0, jailCards: 0 };
@@ -21,7 +22,8 @@ interface Tooltip {
 export default function Board({ state, youIndex = -1 }: { state: GameState; youIndex?: number }) {
   const currentPlayer = state.players[state.turn] || FALLBACK_PLAYER;
   const { tooltip, startHover, moveHover, endHover } = useTileHover();
-  const { highlightOwner, startSeatHover, endSeatHover } = useSeatHighlight();
+  const { highlightOwner, hoveredSeat, startSeatHover, endSeatHover } = useSeatHighlight();
+  const pawnPos = usePawnPositions(state);
 
   return (
     <div style={{ position: "relative", padding: "78px 150px 78px 188px" }}>
@@ -31,6 +33,9 @@ export default function Board({ state, youIndex = -1 }: { state: GameState; youI
             key={space.idx}
             space={space}
             state={state}
+            pawnPos={pawnPos}
+            turnIndex={state.turn}
+            highlightSeat={hoveredSeat}
             dimmed={highlightOwner !== null && state.owners[space.idx] !== highlightOwner}
             onHover={startHover}
             onHoverMove={moveHover}
@@ -79,20 +84,24 @@ function useTileHover() {
   return { tooltip, startHover, moveHover, endHover };
 }
 
-/** After hovering a seat for HOVER_DELAY, dim every tile not owned by that player. */
+/** Seat hover state. The pawn lights up immediately (#41); after HOVER_DELAY the
+ *  board also dims every tile not owned by that player. */
 function useSeatHighlight() {
   const [highlightOwner, setHighlightOwner] = useState<number | null>(null);
+  const [hoveredSeat, setHoveredSeat] = useState<number | null>(null);
   const seatHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startSeatHover = (playerIndex: number) => {
+    setHoveredSeat(playerIndex);
     if (seatHoverTimer.current) clearTimeout(seatHoverTimer.current);
     seatHoverTimer.current = setTimeout(() => setHighlightOwner(playerIndex), HOVER_DELAY);
   };
   const endSeatHover = () => {
     if (seatHoverTimer.current) clearTimeout(seatHoverTimer.current);
+    setHoveredSeat(null);
     setHighlightOwner(null);
   };
-  return { highlightOwner, startSeatHover, endSeatHover };
+  return { highlightOwner, hoveredSeat, startSeatHover, endSeatHover };
 }
 
 /** Left-side column of still-in-play player seats, kept in original seat order. */

@@ -102,7 +102,7 @@ function RoomContent({
   if (needsLogin) return <NameGate roomId={roomId} initial={name ?? ""} onSubmit={onLogin} />;
   if (state!.phase === "lobby")
     return <Lobby roomId={roomId} state={state!} you={you} send={send} />;
-  return <Game state={state!} you={you} send={send} />;
+  return <Game state={state!} you={you} send={send} roomId={roomId} />;
 }
 
 const errorBannerStyle: React.CSSProperties = {
