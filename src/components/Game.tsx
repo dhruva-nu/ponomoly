@@ -10,6 +10,7 @@ import Confetti from "./game/Confetti";
 import GameToasts from "./game/GameToasts";
 import { deriveGameView, type GameView } from "./game/gameView";
 import { useGameNotifications } from "./game/useGameNotifications";
+import { useGameSounds } from "./game/useGameSounds";
 import { useTurnReveal } from "./game/useTurnReveal";
 
 /** Drive the roll button: fire the action and hold the dice/modals briefly so the
@@ -83,6 +84,7 @@ export default function Game({
   const { rolling, holdModals, doRoll } = useDiceRoll(view.canRoll, send);
   const reveal = useTurnReveal(state);
   const { cardAck, goAck, confetti, tradeAck } = useGameNotifications(state, reveal.lastCard);
+  useGameSounds(state);
 
   const [rentMinimized, setRentMinimized] = useState(false);
   const [buildTarget, setBuildTarget] = useState<number | null>(null);

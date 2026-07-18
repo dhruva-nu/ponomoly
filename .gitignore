@@ -10,3 +10,8 @@
 next-env.d.ts.timestamp
 *.tsbuildinfo
 /coverage
+
+# Playwright
+/test-results
+/playwright-report
+/.playwright
