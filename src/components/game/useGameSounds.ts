@@ -32,8 +32,10 @@ function useMoveSound(state: GameState) {
     if (first.current) { first.current = false; prevPos.current = targets; return; }
     // Tiles travelled = the longest forward hop of any pawn (the animation runs
     // until the last one lands), so one click per hop matches the walk exactly.
+    // Jailed tokens teleport (see usePawnPositions), so they take no footsteps.
     let steps = 0;
     for (const p of state.players) {
+      if (p.jailed) continue;
       const from = prevPos.current[p.id] ?? p.position;
       const dist = (p.position - from + BOARD_SIZE) % BOARD_SIZE;
       if (dist > steps) steps = dist;
