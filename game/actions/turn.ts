@@ -20,6 +20,14 @@ function auctionPending(ctx: ActionContext): boolean {
   return ctx.state.pendingAuction !== null || ctx.state.auctionQueue.length > 0;
 }
 
+/** True when the current player owes money they must still raise (sell/mortgage)
+ *  before they can roll again or end their turn. A busted player's negative cash
+ *  doesn't count — they're already out and just need to pass the turn on. */
+function inDebt(state: ActionContext["state"]): boolean {
+  const player = state.players[state.turn];
+  return !player.bankrupt && player.cash < 0;
+}
+
 /** Guard shared by every turn action: must be the acting player's live turn. */
 function requireLiveTurn(ctx: ActionContext): string | undefined {
   if (ctx.state.phase !== "playing") return "Game not in progress.";
@@ -47,7 +55,7 @@ function advancePawn(ctx: ActionContext, total: number): void {
   // Wrapped past (or landed on) GO: pay the salary. Landing exactly on GO is
   // announced by resolveLanding's "go" branch, so creditGo stays quiet there.
   if (player.position < before) creditGo(state, state.turn, player.position === 0);
-  resolveLanding(state, ctx.random);
+  resolveLanding(state, ctx.random, ctx.now);
 }
 
 /** Roll the dice during the opening roll-off (decides who starts). One roll per
@@ -95,7 +103,7 @@ function resolveJailRoll(ctx: ActionContext, total: number, isDoubles: boolean):
     player.jailed = false;
     player.jailTurns = 0;
     appendLog(state, `${player.name} paid $${JAIL_FINE} and was released from Jail.`);
-    settleDebt(state, state.turn);
+    settleDebt(state, state.turn, ctx.now);
     if (!player.bankrupt) advancePawn(ctx, total);
     return;
   }
@@ -126,6 +134,7 @@ export function handleRoll(ctx: ActionContext): HandlerError {
   const { state } = ctx;
   if (auctionPending(ctx)) return "Resolve the auction first.";
   if (state.pendingRent !== null) return "Pay the rent you owe first.";
+  if (inDebt(state)) return "Raise cash to cover your debt first.";
   if (state.dice.rolled || state.pendingBuy !== null) return "Already rolled.";
 
   const { d1, d2 } = rollDice(ctx);
@@ -197,6 +206,7 @@ export function handleEndTurn(ctx: ActionContext): HandlerError {
   if (!state.dice.rolled) return "Roll before ending your turn.";
   if (state.pendingBuy !== null) return "Resolve the property first.";
   if (state.pendingRent !== null) return "Pay the rent you owe first.";
+  if (inDebt(state)) return "Raise cash to cover your debt before ending your turn.";
   if (auctionPending(ctx)) return "Resolve the auction first.";
   advanceTurn(state);
 }

@@ -79,10 +79,11 @@ describe("endTurn", () => {
     const game = startedGame(["Ada", "Bo", "Cy"]);
     game.admin({ kind: "setOwner", pos: 6, owner: 0 }); // Ada holds space 6
     game.admin({ kind: "setOwner", pos: 8, owner: 1 }); // Bo holds space 8
+    game.admin({ kind: "setBuildings", pos: 8, level: 5 }); // Bo's hotel -> rent beyond Ada's net worth
     game.apply("Ada", { type: "proposeTrade", to: 2, offerProps: [6], requestProps: [], offerCash: 0, requestCash: 0 });
     game.admin({ kind: "setCash", target: 0, amount: 5 });
     game.admin({ kind: "movePlayer", target: 0, position: 2 });
-    game.rigRoll("Ada", 3, 3); // lands on Bo's space 8, owes rent she can't pay
+    game.rigRoll("Ada", 3, 3); // lands on Bo's space 8, owes rent beyond what she can raise
     game.apply("Ada", { type: "payRent" });
     expect(game.player(0).bankrupt).toBe(true);
     expect(game.state.owners[6]).toBeUndefined();

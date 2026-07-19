@@ -17,7 +17,7 @@ export function handlePayRent(ctx: ActionContext): HandlerError {
   if (state.players[to]) state.players[to].cash += amount;
   appendLog(state, `${payer.name} paid $${amount} rent to ${state.players[to]?.name ?? "owner"}.`);
   state.pendingRent = null;
-  settleDebt(state, state.turn);
+  settleDebt(state, state.turn, ctx.now);
 }
 
 export function handleRequestNegotiate(ctx: ActionContext): HandlerError {

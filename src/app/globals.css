@@ -94,6 +94,19 @@ button {
     filter: brightness(1.25);
   }
 }
+/* The active player's pawn: a pronounced size + glow pulse so it's obvious
+   whose turn it is. --pawn-glow is set inline to the player's color. */
+@keyframes pawnPulseActive {
+  0%,
+  100% {
+    transform: translateY(-3px) scale(1.06);
+    filter: brightness(1.05) drop-shadow(0 0 2px var(--pawn-glow, #fff));
+  }
+  50% {
+    transform: translateY(-6px) scale(1.26);
+    filter: brightness(1.4) drop-shadow(0 0 9px var(--pawn-glow, #fff));
+  }
+}
 @keyframes gridDrift {
   0% {
     background-position: 0 0, 0 0;
