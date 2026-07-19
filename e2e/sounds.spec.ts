@@ -107,10 +107,11 @@ test("all six game events play their sound", async ({ page }) => {
   await waitFor(() => mover.state?.dice?.rolled === true, 10_000, "rolled");
   await waitFor(() => mover.state?.players[mover.state.turn].position === 3, 10_000, "landed on Baltic");
 
-  // Dice sound fires immediately; the move sound is delayed to sync with the pawn
-  // walk (~700ms in usePawnPositions), so give it a moment.
+  // Dice sound fires immediately; step sounds are scheduled one per tile hopped,
+  // synced to the walk animation. The mover travelled 3 tiles (0 -> 3), so expect
+  // three pawn-move plays.
   await waitFor(async () => (await recordedSounds(page)).includes("dice-roll.mp3"), 10_000, "dice sound");
-  await waitFor(async () => (await recordedSounds(page)).includes("pawn-move.mp3"), 10_000, "move sound");
+  await waitFor(async () => (await recordedSounds(page)).filter((s) => s === "pawn-move.mp3").length >= 3, 10_000, "three step sounds");
 
   // --- Property purchase.
   const buyer = cur();

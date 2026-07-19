@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import type { GameState } from "@game/types";
+import { BOARD_SIZE } from "@game/constants";
 import { playSound } from "@/lib/sounds";
-import { DICE_SETTLE_MS } from "../board/usePawnPositions";
+import { DICE_SETTLE_MS, STEP_MS } from "../board/usePawnPositions";
 
 /** Play the dice-roll SFX on the false→true edge of `dice.rolled`. Each roll
  *  resets the flag at turn start, so every roll (including doubles) fires once. */
@@ -15,22 +16,38 @@ function useDiceSound(state: GameState) {
   }, [state.dice.rolled]);
 }
 
-/** Play the pawn-step SFX whenever any token's real position changes, delayed by
- *  DICE_SETTLE_MS so it lands as the pawn actually starts walking (usePawnPositions
- *  holds the pawn for the dice to settle first). */
+/** Play the pawn-step SFX once per tile the token hops, synced to the walk
+ *  animation: usePawnPositions holds the pawn for DICE_SETTLE_MS, then advances
+ *  one tile every STEP_MS until it arrives. We schedule a click on each of those
+ *  hops (a move covers `steps` tiles, taking the max forward distance any pawn
+ *  travels this update) so the footsteps track the token across the board. */
 function useMoveSound(state: GameState) {
   const first = useRef(true);
   const posKey = state.players.map((p) => `${p.id}:${p.position}`).join(",");
-  const prevKey = useRef(posKey);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevPos = useRef<Record<string, number>>(Object.fromEntries(state.players.map((p) => [p.id, p.position])));
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
   useEffect(() => {
-    if (first.current) { first.current = false; prevKey.current = posKey; return; }
-    if (posKey === prevKey.current) return;
-    prevKey.current = posKey;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => playSound("move"), DICE_SETTLE_MS);
-    return () => { if (timer.current) clearTimeout(timer.current); };
+    const targets = Object.fromEntries(state.players.map((p) => [p.id, p.position]));
+    if (first.current) { first.current = false; prevPos.current = targets; return; }
+    // Tiles travelled = the longest forward hop of any pawn (the animation runs
+    // until the last one lands), so one click per hop matches the walk exactly.
+    let steps = 0;
+    for (const p of state.players) {
+      const from = prevPos.current[p.id] ?? p.position;
+      const dist = (p.position - from + BOARD_SIZE) % BOARD_SIZE;
+      if (dist > steps) steps = dist;
+    }
+    prevPos.current = targets;
+    if (steps === 0) return;
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    for (let k = 1; k <= steps; k++) {
+      timers.current.push(setTimeout(() => playSound("move"), DICE_SETTLE_MS + k * STEP_MS));
+    }
   }, [posKey]);
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
 }
 
 /** Play the trade / buy / jail SFX by watching the shared log tail, the same
