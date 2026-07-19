@@ -81,10 +81,16 @@ test("all six game events play their sound", async ({ page }) => {
   // Host (first joiner) starts; both roll for turn order; wait for play to begin.
   alice.send({ type: "start" });
   await waitFor(() => alice.state?.phase === "rolloff", 15_000, "rolloff");
-  alice.send({ type: "rollForOrder" });
-  bob.send({ type: "rollForOrder" });
-  // The roll-off settles on a server alarm; nudge it and wait for "playing".
+  // Roll for order until it resolves. Dice are random here, so a tie starts a
+  // fresh round; re-rolling any contender who hasn't rolled this round (the
+  // engine rejects a duplicate roll harmlessly) drives it to a winner. The
+  // settle then runs on a server alarm, which we also nudge with tickRolloff.
   await waitFor(() => {
+    const r = alice.state?.rolloff;
+    if (r && r.winner === undefined) {
+      if (r.rolls?.[0] === undefined) alice.send({ type: "rollForOrder" });
+      if (r.rolls?.[1] === undefined) bob.send({ type: "rollForOrder" });
+    }
     alice.send({ type: "tickRolloff" });
     return alice.state?.phase === "playing";
   }, 20_000, "playing");

@@ -18,6 +18,10 @@ export interface GoAck {
   amount: number;
 }
 
+export interface JailAck {
+  name: string;
+}
+
 export interface CardAck {
   deck: "chance" | "chest";
   text: string;
@@ -86,6 +90,31 @@ function useGoAck(state: GameState): GoAck | null {
   return goAck;
 }
 
+/** Pop a "Go to Jail" banner the moment a player is jailed. Reads the raw (not
+ *  reveal-gated) log so the popup lands first and the pawn then walks to Jail. */
+function useJailAck(state: GameState): JailAck | null {
+  const [jailAck, setJailAck] = useState<JailAck | null>(null);
+  const first = useRef(true);
+  const lastLog = useRef<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const latest = state.log[state.log.length - 1] ?? null;
+    const prev = lastLog.current;
+    lastLog.current = latest;
+    if (first.current) { first.current = false; return; }
+    if (!latest || prev === null || latest === prev) return;
+    const match = latest.match(/^(.+) was sent to Jail\.?$/);
+    if (!match) return;
+    setJailAck({ name: match[1] });
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setJailAck(null), 3200);
+  }, [state.log]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  return jailAck;
+}
+
 /** Celebrate trade/buy completions for everyone by watching the shared log. Each
  *  completed action arrives as its own broadcast, so it's the newest line. */
 function useTradeCelebrations(state: GameState): { confetti: number; tradeAck: TradeAck | null } {
@@ -133,6 +162,7 @@ function useTradeCelebrations(state: GameState): { confetti: number; tradeAck: T
 export function useGameNotifications(state: GameState, revealedCard: GameState["lastCard"]) {
   const cardAck = useCardAck(revealedCard, state.players);
   const goAck = useGoAck(state);
+  const jailAck = useJailAck(state);
   const { confetti, tradeAck } = useTradeCelebrations(state);
-  return { cardAck, goAck, confetti, tradeAck };
+  return { cardAck, goAck, jailAck, confetti, tradeAck };
 }

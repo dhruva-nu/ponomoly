@@ -83,7 +83,7 @@ export default function Game({
   const view = deriveGameView(state, you);
   const { rolling, holdModals, doRoll } = useDiceRoll(view.canRoll, send);
   const reveal = useTurnReveal(state);
-  const { cardAck, goAck, confetti, tradeAck } = useGameNotifications(state, reveal.lastCard);
+  const { cardAck, goAck, jailAck, confetti, tradeAck } = useGameNotifications(state, reveal.lastCard);
   useGameSounds(state);
 
   const [rentMinimized, setRentMinimized] = useState(false);
@@ -95,7 +95,7 @@ export default function Game({
   return (
     <div style={gameLayoutStyle}>
       <Confetti trigger={confetti} />
-      <GameToasts tradeAck={tradeAck} goAck={goAck} />
+      <GameToasts tradeAck={tradeAck} goAck={goAck} jailAck={jailAck} />
 
       <Board state={state} youIndex={view.myIndex} />
 
