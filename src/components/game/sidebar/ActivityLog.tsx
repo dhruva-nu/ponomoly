@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { COLOR } from "@/components/ui/theme";
 import { clearLog, loadOptIn, saveLog, setOptIn } from "@/lib/logStore";
+import CollapsibleSection from "./CollapsibleSection";
 
 /** Opt-in, session-scoped persistence of the activity log (#43). Persists while
  *  opted in, and deletes the stored copy on opt-out or when the game ends. */
@@ -40,15 +41,17 @@ export default function ActivityLog({ lines, room, gameEnded }: {
   const persistence = useLogPersistence(room ?? "", lines, gameEnded ?? false);
 
   return (
-    <div style={containerStyle}>
-      {room && <SaveLogToggle {...persistence} />}
-      {lines.map((line, index) => (
-        <div key={index} style={{ display: "flex", gap: 7 }}>
-          <span style={{ color: COLOR.cyan }}>›</span>
-          <span>{line}</span>
-        </div>
-      ))}
-    </div>
+    <CollapsibleSection title="Activity Log" accent={COLOR.cyan} background="#fbf7ea">
+      <div style={bodyStyle}>
+        {room && <SaveLogToggle {...persistence} />}
+        {lines.map((line, index) => (
+          <div key={index} style={{ display: "flex", gap: 7 }}>
+            <span style={{ color: COLOR.cyan }}>›</span>
+            <span>{line}</span>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -74,15 +77,11 @@ function SaveLogToggle({ optIn, toggle, disabled }: {
   );
 }
 
-const containerStyle: React.CSSProperties = {
-  background: "#fbf7ea",
-  border: "1px solid rgba(0,0,0,.15)",
+const bodyStyle: React.CSSProperties = {
   color: COLOR.muted,
-  borderRadius: 12,
-  padding: "13px 15px",
   fontSize: 14,
   lineHeight: 1.6,
-  minHeight: 80,
+  minHeight: 60,
   fontWeight: 500,
   letterSpacing: 0.3,
 };
