@@ -93,17 +93,20 @@ describe("landing resolution", () => {
 
   it("applies positive and negative card draws", () => {
     const positive = game();
-    positive.rigRoll("Ada", 3, 4, () => 0.8); // space 7 = Chance, top cash outcome +200
+    positive.stackCard("chance", 8); // chance[8]: building loan matures, +$200
+    positive.rigRoll("Ada", 3, 4); // space 7 = Chance
     expect(positive.player(0).cash).toBe(1700);
 
     const negative = game();
-    negative.rigRoll("Ada", 3, 4, () => 0); // worst outcome -100
+    negative.stackCard("chance", 0); // chance[0]: building and loan fees, -$100
+    negative.rigRoll("Ada", 3, 4);
     expect(negative.player(0).cash).toBe(1400);
   });
 
   it("grants a Get Out of Jail Free card on the right draw", () => {
     const g = game();
-    g.rigRoll("Ada", 3, 4, () => 0.99); // space 7 = Chance, top slot is the jail card
+    g.stackCard("chance", 9); // chance[9]: Get Out of Jail Free
+    g.rigRoll("Ada", 3, 4); // space 7 = Chance
     expect(g.player(0).jailCards).toBe(1);
     expect(g.player(0).cash).toBe(1500); // a card, not cash
   });
@@ -111,7 +114,8 @@ describe("landing resolution", () => {
   it("bankrupts a player a negative card pushes below zero", () => {
     const g = game();
     g.admin({ kind: "setCash", target: 0, amount: 50 });
-    g.rigRoll("Ada", 3, 4, () => 0); // -100 card, 50 - 100 < 0
+    g.stackCard("chance", 0); // chance[0]: -$100, 50 - 100 < 0
+    g.rigRoll("Ada", 3, 4);
     expect(g.player(0).bankrupt).toBe(true);
   });
 });
