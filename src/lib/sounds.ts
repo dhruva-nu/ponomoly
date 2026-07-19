@@ -1,18 +1,20 @@
 "use client";
 
 /** The in-game sound effects, mapped to their files under public/assets/sounds.
- *  Source: Mixkit (free, no-attribution license). */
-export type SoundName = "dice" | "move" | "trade" | "buy";
+ *  Sources: OpenGameArt (dice) and Mixkit — both free, no attribution. */
+export type SoundName = "dice" | "move" | "trade" | "buy" | "jail" | "go";
 
 const FILES: Record<SoundName, string> = {
   dice: "/assets/sounds/dice-roll.mp3",
   move: "/assets/sounds/pawn-move.mp3",
   trade: "/assets/sounds/trade-complete.mp3",
   buy: "/assets/sounds/property-buy.mp3",
+  jail: "/assets/sounds/jail.mp3",
+  go: "/assets/sounds/pass-go.mp3",
 };
 
 // Per-effect volume so the louder clips (dice, coins) don't drown the UI.
-const VOLUME: Record<SoundName, number> = { dice: 0.6, move: 0.35, trade: 0.7, buy: 0.7 };
+const VOLUME: Record<SoundName, number> = { dice: 0.6, move: 0.35, trade: 0.7, buy: 0.7, jail: 0.6, go: 0.6 };
 
 // One preloaded template per effect, cloned on play so overlapping events (e.g. a
 // pawn landing while dice still ring) don't cut each other off. Built lazily on the

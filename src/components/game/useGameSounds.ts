@@ -33,8 +33,8 @@ function useMoveSound(state: GameState) {
   }, [posKey]);
 }
 
-/** Play the trade / buy SFX by watching the shared log tail, the same signal the
- *  confetti uses: each completed action arrives as its own newest line. */
+/** Play the trade / buy / jail SFX by watching the shared log tail, the same
+ *  signal the confetti uses: each action arrives as its own newest line. */
 function useLogSound(state: GameState) {
   const first = useRef(true);
   const lastLog = useRef<string | null>(null);
@@ -46,13 +46,30 @@ function useLogSound(state: GameState) {
     if (!latest || prev === null || latest === prev) return;
     if (latest.includes("completed a trade")) playSound("trade");
     else if (latest.includes("acquired") || latest.includes("at auction for")) playSound("buy");
+    else if (latest.includes("was sent to Jail")) playSound("jail");
   }, [state.log]);
 }
 
+/** Play the GO-salary SFX on each `lastGo` payout, matched to the same monotonic
+ *  id the GO toast fires off so it sounds once per collection. */
+function useGoSound(state: GameState) {
+  const first = useRef(true);
+  const lastId = useRef(state.lastGo?.id ?? 0);
+  useEffect(() => {
+    const id = state.lastGo?.id ?? 0;
+    if (first.current) { first.current = false; lastId.current = id; return; }
+    if (id === lastId.current) return;
+    lastId.current = id;
+    if (state.lastGo) playSound("go");
+  }, [state.lastGo]);
+}
+
 /** Wire game state transitions to their sound effects: dice rolls, pawn moves,
- *  completed trades, and property purchases (direct buy or auction win). */
+ *  completed trades, property purchases (direct buy or auction win), being sent
+ *  to Jail, and collecting the GO salary. */
 export function useGameSounds(state: GameState) {
   useDiceSound(state);
   useMoveSound(state);
   useLogSound(state);
+  useGoSound(state);
 }

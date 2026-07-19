@@ -8,8 +8,8 @@ import { randomUUID } from "node:crypto";
  * and runs useGameSounds, so every sound is triggered by genuine state
  * broadcasts. Two players are driven deterministically over raw WebSockets
  * (the same protocol the app speaks) to produce each event: a dice roll, a pawn
- * move, a property purchase, and a completed trade. We assert the matching audio
- * file's play() was invoked on the page.
+ * move, a property purchase, a completed trade, passing GO, and being sent to
+ * Jail. We assert the matching audio file's play() was invoked on the page.
  *
  * Prereqs: `next dev` on :3000 and `wrangler dev` on :8787 already running.
  */
@@ -52,7 +52,7 @@ async function recordedSounds(page: Page): Promise<string[]> {
   return page.evaluate(() => (window as any).__sounds ?? []);
 }
 
-test("all four game events play their sound", async ({ page }) => {
+test("all six game events play their sound", async ({ page }) => {
   // Spy on media playback before any app script runs, on every navigation.
   await page.addInitScript(() => {
     (window as any).__sounds = [];
@@ -121,11 +121,39 @@ test("all four game events play their sound", async ({ page }) => {
   await waitFor(() => proposer.state?.pendingTrade == null && proposer.state?.owners?.[3] === recipientIdx, 10_000, "trade completed");
   await waitFor(async () => (await recordedSounds(page)).includes("trade-complete.mp3"), 10_000, "trade sound");
 
+  const idxOf = (a: Actor) => a.state.players.findIndex((p: any) => p.id === a.id);
+  const aliceIdx = idxOf(alice);
+  const bobIdx = idxOf(bob);
+
+  // --- Passing GO: teleport Alice just behind GO, then roll her past it.
+  alice.admin({ kind: "setTurn", turn: aliceIdx });
+  await waitFor(() => alice.state?.turn === aliceIdx && alice.state?.dice?.rolled === false, 10_000, "Alice's turn reset");
+  alice.admin({ kind: "movePlayer", target: aliceIdx, position: 38 });
+  await waitFor(() => alice.state?.players[aliceIdx].position === 38, 10_000, "Alice at 38");
+  alice.admin({ kind: "forceDice", d1: 1, d2: 2 });
+  await waitFor(() => alice.state?.riggedDice != null, 10_000, "GO rig set");
+  alice.send({ type: "roll" });
+  await waitFor(() => (alice.state?.lastGo?.id ?? 0) > 0, 10_000, "GO salary paid");
+  await waitFor(async () => (await recordedSounds(page)).includes("pass-go.mp3"), 10_000, "GO sound");
+
+  // --- Sent to Jail: teleport Bob so a 3 lands him on Go To Jail (space 30).
+  alice.admin({ kind: "setTurn", turn: bobIdx });
+  await waitFor(() => alice.state?.turn === bobIdx && alice.state?.dice?.rolled === false, 10_000, "Bob's turn reset");
+  alice.admin({ kind: "movePlayer", target: bobIdx, position: 27 });
+  await waitFor(() => alice.state?.players[bobIdx].position === 27, 10_000, "Bob at 27");
+  alice.admin({ kind: "forceDice", d1: 1, d2: 2 });
+  await waitFor(() => alice.state?.riggedDice != null, 10_000, "jail rig set");
+  bob.send({ type: "roll" });
+  await waitFor(() => bob.state?.players[bobIdx].jailed === true, 10_000, "Bob jailed");
+  await waitFor(async () => (await recordedSounds(page)).includes("jail.mp3"), 10_000, "jail sound");
+
   const sounds = await recordedSounds(page);
   expect(sounds).toContain("dice-roll.mp3");
   expect(sounds).toContain("pawn-move.mp3");
   expect(sounds).toContain("property-buy.mp3");
   expect(sounds).toContain("trade-complete.mp3");
+  expect(sounds).toContain("pass-go.mp3");
+  expect(sounds).toContain("jail.mp3");
 
   alice.close();
   bob.close();
