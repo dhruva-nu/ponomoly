@@ -8,9 +8,17 @@ import { BOARD } from "@game/board";
 // players can follow a pawn travelling around the board instead of teleporting.
 export const STEP_MS = 130;
 
-// The dice tumble for ~650ms; hold the pawn until they've settled so the roll
-// reads first, then the token starts walking (#42 sequencing).
-export const DICE_SETTLE_MS = 700;
+// How long the dice tumble before landing — kept roughly in step with the
+// dice-roll sound so the throw reads as one motion.
+export const DICE_ROLL_MS = 1000;
+
+// How long the landing bounce takes once the tumble stops (see Die).
+export const DICE_LAND_MS = 300;
+
+// Hold the pawn until the dice have finished tumbling AND settled (the landing
+// bounce), so the roll fully stops before the token starts walking
+// (#42 sequencing): DICE_ROLL_MS + DICE_LAND_MS + a small beat.
+export const DICE_SETTLE_MS = DICE_ROLL_MS + DICE_LAND_MS + 100;
 
 /** Snapshot of every player's true board position, keyed by player id. */
 export function targetPositions(state: GameState): Record<string, number> {

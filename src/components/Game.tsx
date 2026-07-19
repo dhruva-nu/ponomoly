@@ -12,6 +12,7 @@ import { deriveGameView, type GameView } from "./game/gameView";
 import { useGameNotifications } from "./game/useGameNotifications";
 import { useGameSounds } from "./game/useGameSounds";
 import { useTurnReveal } from "./game/useTurnReveal";
+import { DICE_ROLL_MS, DICE_SETTLE_MS } from "./board/usePawnPositions";
 
 /** Drive the roll button: fire the action and hold the dice/modals briefly so the
  *  roll animation can play out before prompts reappear. */
@@ -31,9 +32,11 @@ function useDiceRoll(canRoll: boolean, send: (action: ClientAction) => void) {
     setRolling(true);
     setHoldModals(true);
     send({ type: "roll" });
-    // Dice settle at 650ms; hold the prompt an extra second after they land.
-    rollTimer.current = setTimeout(() => setRolling(false), 650);
-    holdTimer.current = setTimeout(() => setHoldModals(false), 1650);
+    // Tumble stops at DICE_ROLL_MS, the pawn only starts once the dice have
+    // settled (DICE_SETTLE_MS); hold prompts a beat past that so they don't pop
+    // over the throw or the first steps of the walk.
+    rollTimer.current = setTimeout(() => setRolling(false), DICE_ROLL_MS);
+    holdTimer.current = setTimeout(() => setHoldModals(false), DICE_SETTLE_MS + 900);
   };
 
   return { rolling, holdModals, doRoll };

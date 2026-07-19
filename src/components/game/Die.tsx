@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { COLOR } from "../ui/theme";
+import { DICE_LAND_MS } from "../board/usePawnPositions";
 
 const PIP_LAYOUT: Record<number, number[]> = {
   1: [4],
@@ -19,7 +20,7 @@ function useLandingBounce(rolling: boolean): boolean {
   useEffect(() => {
     if (wasRolling.current && !rolling) {
       setLanding(true);
-      const t = setTimeout(() => setLanding(false), 650);
+      const t = setTimeout(() => setLanding(false), DICE_LAND_MS);
       wasRolling.current = rolling;
       return () => clearTimeout(t);
     }
@@ -64,7 +65,7 @@ export default function Die({
 
   // Stagger the two dice slightly so the throw feels physical, not synced.
   const tumble = `diceTumble .55s cubic-bezier(.36,.07,.4,1) ${index * 0.07}s infinite`;
-  const land = `diceLand .6s cubic-bezier(.2,.7,.3,1) ${index * 0.05}s 1`;
+  const land = `diceLand ${DICE_LAND_MS}ms cubic-bezier(.2,.7,.3,1) ${index * 0.05}s 1`;
 
   return (
     <div style={{ perspective: 420, perspectiveOrigin: "center 130%" }}>
