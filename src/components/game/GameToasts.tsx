@@ -1,17 +1,57 @@
 "use client";
 
 import { COLOR, GRADIENT } from "../ui/theme";
-import type { GoAck, TradeAck } from "./useGameNotifications";
+import type { GoAck, JailAck, TradeAck } from "./useGameNotifications";
 
-/** The two fixed-position banners shown at the top of the game screen: a trade
- *  recap and a GO-salary notice. The GO toast drops below the trade one when both
- *  are visible. Both are pure overlays (pointer-events: none). */
-export default function GameToasts({ tradeAck, goAck }: { tradeAck: TradeAck | null; goAck: GoAck | null }) {
+/** The fixed-position banners shown at the top of the game screen: a trade recap,
+ *  a GO-salary notice, and a "Go to Jail" alert. Stacked so a lower one drops
+ *  below the ones above it. All are pure overlays (pointer-events: none). */
+export default function GameToasts({ tradeAck, goAck, jailAck }: {
+  tradeAck: TradeAck | null;
+  goAck: GoAck | null;
+  jailAck: JailAck | null;
+}) {
   return (
     <>
       {tradeAck && <TradeAckToast ack={tradeAck} />}
       {goAck && <GoAckToast ack={goAck} offset={!!tradeAck} />}
+      {jailAck && <JailAckToast ack={jailAck} offset={!!tradeAck || !!goAck} />}
     </>
+  );
+}
+
+/** Bold red "Go to Jail" flash — fires the instant a player is jailed, before
+ *  their pawn walks to the cell. */
+function JailAckToast({ ack, offset }: { ack: JailAck; offset: boolean }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: offset ? 110 : 24,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 9999,
+        maxWidth: "92vw",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "14px 26px",
+        borderRadius: 16,
+        background: GRADIENT.danger,
+        color: COLOR.abyss,
+        boxShadow: "0 12px 30px rgba(34,24,8,.35)",
+        animation: "popIn .25s ease",
+        pointerEvents: "none",
+        textAlign: "center",
+        fontWeight: 900,
+        fontSize: 17,
+        letterSpacing: 1,
+        textTransform: "uppercase",
+      }}
+    >
+      <span style={{ fontSize: 24 }}>🚔</span>
+      {ack.name} — Go to Jail!
+    </div>
   );
 }
 

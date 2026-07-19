@@ -8,9 +8,17 @@ import { BOARD } from "@game/board";
 // players can follow a pawn travelling around the board instead of teleporting.
 export const STEP_MS = 130;
 
-// The dice tumble for ~650ms; hold the pawn until they've settled so the roll
-// reads first, then the token starts walking (#42 sequencing).
-export const DICE_SETTLE_MS = 700;
+// How long the dice tumble before landing — kept roughly in step with the
+// dice-roll sound so the throw reads as one motion.
+export const DICE_ROLL_MS = 1000;
+
+// How long the landing bounce takes once the tumble stops (see Die).
+export const DICE_LAND_MS = 300;
+
+// Hold the pawn until the dice have finished tumbling AND settled (the landing
+// bounce), so the roll fully stops before the token starts walking
+// (#42 sequencing): DICE_ROLL_MS + DICE_LAND_MS + a small beat.
+export const DICE_SETTLE_MS = DICE_ROLL_MS + DICE_LAND_MS + 100;
 
 /** Snapshot of every player's true board position, keyed by player id. */
 export function targetPositions(state: GameState): Record<string, number> {
@@ -18,15 +26,16 @@ export function targetPositions(state: GameState): Record<string, number> {
 }
 
 /** Advance every pawn one tile toward its target, wrapping forward around the
- *  board (the direction of normal play). Returns the next display map and
- *  whether every pawn has now arrived. */
-function stepToward(current: Record<string, number>, targets: Record<string, number>) {
+ *  board (the direction of normal play). Pawns in `instant` snap straight to
+ *  their target (jail is a teleport, not a lap of the board). Returns the next
+ *  display map and whether every pawn has now arrived. */
+function stepToward(current: Record<string, number>, targets: Record<string, number>, instant?: Set<string>) {
   const next: Record<string, number> = {};
   let done = true;
   for (const id of Object.keys(targets)) {
     const to = targets[id];
     const from = current[id] ?? to; // pawns that just appeared start settled
-    if (from === to) { next[id] = to; continue; }
+    if (from === to || instant?.has(id)) { next[id] = to; continue; }
     done = false;
     next[id] = (from + 1) % BOARD.length;
   }
@@ -47,13 +56,24 @@ export function usePawnPositions(state: GameState): Record<string, number> {
     // Skip the join snapshot: seat tokens where they already stand, no animation.
     if (first.current) { first.current = false; setDisplay(targetPositions(state)); return; }
     const targets = targetPositions(state);
+    // Jailed tokens teleport to the cell rather than walking the long way round.
+    const jailed = new Set(state.players.filter((p) => p.jailed).map((p) => p.id));
     const walk = () => setDisplay((cur) => {
-      const { next, done } = stepToward(cur, targets);
+      const { next, done } = stepToward(cur, targets, jailed);
       if (done && timer.current) { clearInterval(timer.current); timer.current = null; }
       return next;
     });
-    // Let the dice land first, then step one tile at a time to the target.
-    startTimer.current = setTimeout(() => { timer.current = setInterval(walk, STEP_MS); }, DICE_SETTLE_MS);
+    // Let the dice land first, then snap jailed tokens and step everyone else.
+    startTimer.current = setTimeout(() => {
+      if (jailed.size > 0) {
+        setDisplay((cur) => {
+          const snapped = { ...cur };
+          for (const id of jailed) snapped[id] = targets[id];
+          return snapped;
+        });
+      }
+      timer.current = setInterval(walk, STEP_MS);
+    }, DICE_SETTLE_MS);
     return () => {
       if (startTimer.current) clearTimeout(startTimer.current);
       if (timer.current) clearInterval(timer.current);
