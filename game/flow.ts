@@ -1,5 +1,5 @@
 import type { Auction, GameState } from "./types";
-import { BOARD, isOwnable, scopeMatchesSpace } from "./board";
+import { BOARD, isOwnable, mortgageValue, scopeMatchesSpace, sellValue } from "./board";
 import { AUCTION_DURATION_MS, BOARD_SIZE, GO_SALARY, JAIL_INDEX, ROLLOFF_START_DELAY_MS } from "./constants";
 import { appendLog, solventPlayerIndices } from "./helpers";
 import { discountedRent, rentFor } from "./rent";
@@ -59,13 +59,40 @@ function consumeRentAgreements(state: GameState, payer: number, payee: number, p
   });
 }
 
-/** If a player's cash went negative, bust them and release their assets to the
- *  bank (debt forfeiture does not auction). */
-export function settleDebt(state: GameState, playerIdx: number): void {
+/** Cash a player could still raise by selling off every building and mortgaging
+ *  every not-yet-mortgaged property — their liquid worth beyond the cash in hand. */
+export function liquidationValue(state: GameState, playerIdx: number): number {
+  const player = state.players[playerIdx];
+  let total = 0;
+  for (const pos of player.properties) {
+    // Each building level refunds one sellValue on the way down (hotel = level 5).
+    total += (state.buildings[pos] || 0) * sellValue(pos);
+    if (!state.mortgaged[pos]) total += mortgageValue(pos);
+  }
+  return total;
+}
+
+/** Called after a charge may have pushed a player's cash negative. A player who
+ *  could still cover the shortfall by selling buildings / mortgaging isn't bankrupt
+ *  yet — they just owe money and are barred from ending their turn until they raise
+ *  it (see the debt guards in the turn handlers). Only a debt beyond their entire
+ *  net worth busts them outright, releasing their estate to auction. */
+export function settleDebt(state: GameState, playerIdx: number, now: number): void {
   const player = state.players[playerIdx];
   if (player.cash >= 0 || player.bankrupt) return;
-  removeFromPlay(state, playerIdx);
+  // Still solvent if a full fire-sale would clear the debt — flag it and let them
+  // choose what to liquidate. `settleDebt` fires once per charge, so this logs once.
+  if (player.cash + liquidationValue(state, playerIdx) >= 0) {
+    appendLog(state, `${player.name} owes $${-player.cash} and must raise cash before ending their turn.`);
+    return;
+  }
+  const estate = removeFromPlay(state, playerIdx);
   appendLog(state, `${player.name} went bankrupt and is out.`);
+  // The last player standing wins — no point auctioning to an empty room (the
+  // game ends the moment the turn advances, which clears any open/queued lots).
+  if (estate.length > 0 && solventPlayerIndices(state).length > 1) {
+    enqueueAuctions(state, estate, now);
+  }
 }
 
 /**
@@ -132,7 +159,7 @@ export function openNextAuction(state: GameState, now: number, excludeIndex = -1
   // A lot with no eligible bidders (e.g. excluding the decliner leaves nobody
   // solvent left in a 2-player game) is dead on arrival — void it and move on.
   if (auction.active.length === 0) {
-    resolveAuction(state);
+    resolveAuction(state, now);
     openNextAuction(state, now);
   }
 }
@@ -148,7 +175,7 @@ export function auctionShouldResolve(auction: Auction, now: number): boolean {
 
 /** Award the property to the high bidder (or void it if there were no bids) and
  *  clear the auction. */
-export function resolveAuction(state: GameState): void {
+export function resolveAuction(state: GameState, now: number): void {
   const auction = state.pendingAuction;
   if (!auction) return;
   state.pendingAuction = null; // clear first so settleDebt won't re-touch it
@@ -163,7 +190,7 @@ export function resolveAuction(state: GameState): void {
   winner.properties.push(auction.pos);
   winner.properties.sort((a, b) => a - b);
   appendLog(state, `${winner.name} won ${space.name} at auction for $${auction.highBid}.`);
-  settleDebt(state, auction.highBidder); // safety net if a bid outran the cash
+  settleDebt(state, auction.highBidder, now); // safety net if a bid outran the cash
 }
 
 /** Resolve the auction if it is ready, then chain to the next queued lot.
@@ -171,7 +198,7 @@ export function resolveAuction(state: GameState): void {
 export function settleAuctionIfReady(state: GameState, now: number): boolean {
   const auction = state.pendingAuction;
   if (!auction || !auctionShouldResolve(auction, now)) return false;
-  resolveAuction(state);
+  resolveAuction(state, now);
   openNextAuction(state, now);
   return true;
 }
@@ -203,7 +230,7 @@ export function creditGo(state: GameState, playerIdx: number, landedOnGo: boolea
  * (crediting GO on a forward wrap) and then resolves the new landing — but with
  * card draws disabled, so a card can never chain into another card draw.
  */
-function applyCard(state: GameState, turn: number, deck: DeckType, card: Card, random: RandomSource): void {
+function applyCard(state: GameState, turn: number, deck: DeckType, card: Card, random: RandomSource, now: number): void {
   const player = state.players[turn];
   appendLog(state, `${player.name} drew: ${card.text}`);
   // Signal the drawn card so every client can pop it; the rules below then apply.
@@ -215,7 +242,7 @@ function applyCard(state: GameState, turn: number, deck: DeckType, card: Card, r
       break;
     case "subtract":
       player.cash -= card.amount ?? 0;
-      settleDebt(state, turn);
+      settleDebt(state, turn, now);
       break;
     case "jailFree":
       player.jailCards += 1;
@@ -235,7 +262,7 @@ function applyCard(state: GameState, turn: number, deck: DeckType, card: Card, r
         if (by > 0 && dest < before) creditGo(state, turn, dest === 0); // only a forward wrap pays
       }
       player.position = dest;
-      resolveLanding(state, random, false); // resolve the destination; no further card draw
+      resolveLanding(state, random, now, false); // resolve the destination; no further card draw
       break;
     }
   }
@@ -244,7 +271,7 @@ function applyCard(state: GameState, turn: number, deck: DeckType, card: Card, r
 /** Resolve the effect of the current player landing on their current space.
  *  `allowCard` is false when the landing was reached via a card move, so a card
  *  space resolves to a no-op instead of drawing again. */
-export function resolveLanding(state: GameState, random: RandomSource, allowCard = true): void {
+export function resolveLanding(state: GameState, random: RandomSource, now: number, allowCard = true): void {
   const turn = state.turn;
   const player = state.players[turn];
   const space = BOARD[player.position];
@@ -256,7 +283,7 @@ export function resolveLanding(state: GameState, random: RandomSource, allowCard
   if (space.t === "tax") {
     player.cash -= space.price!; // tax spaces always carry a price
     appendLog(state, `${player.name} paid $${space.price} ${space.name}.`);
-    settleDebt(state, turn);
+    settleDebt(state, turn, now);
   } else if (space.t === "gotojail") {
     sendToJail(state, turn);
   } else if (space.t === "chance" || space.t === "chest") {
@@ -264,7 +291,7 @@ export function resolveLanding(state: GameState, random: RandomSource, allowCard
       appendLog(state, `${player.name} rests at ${space.name}.`);
       return;
     }
-    applyCard(state, turn, space.t, drawCard(space.t, random, state.cardDecks), random);
+    applyCard(state, turn, space.t, drawCard(space.t, random, state.cardDecks), random, now);
   } else if (space.t === "go") {
     appendLog(state, `${player.name} landed on GO. Collected $200.`);
   } else if (space.t === "parking") {

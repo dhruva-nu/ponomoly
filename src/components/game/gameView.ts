@@ -8,6 +8,10 @@ export interface GameView {
   currentPlayer: Player;
   canRoll: boolean;
   canEnd: boolean;
+  /** the viewer owes money (negative cash) and must raise it before acting */
+  inDebt: boolean;
+  /** how much the viewer owes while in debt (0 otherwise) */
+  debtAmount: number;
   /** the viewer is jailed and it is their turn to act */
   inJail: boolean;
   /** can pay the fine to leave Jail right now */
@@ -44,19 +48,27 @@ export function deriveGameView(state: GameState, you: string | null): GameView {
   const me = myIndex >= 0 ? state.players[myIndex] : undefined;
   // Voluntary jail exits are offered at the start of the turn, before any roll.
   const inJail = isMyTurn && playing && !!me?.jailed && !state.dice.rolled;
+  // A charge (rent/tax/card) can leave the active player underwater but still
+  // solvent — they owe money and must sell/mortgage before they can roll again
+  // or end their turn. A bankrupt player is already out, so their negative cash
+  // doesn't count (mirrors the engine's `inDebt` guard in the turn handlers).
+  const inDebt = isMyTurn && playing && !!me && !me.bankrupt && me.cash < 0;
 
   return {
     myIndex,
     isSpectator,
     isMyTurn,
     currentPlayer: state.players[state.turn],
-    canRoll: isMyTurn && !state.dice.rolled && state.pendingBuy === null && playing,
+    canRoll: isMyTurn && !state.dice.rolled && state.pendingBuy === null && playing && !inDebt,
     canEnd:
       isMyTurn &&
       state.dice.rolled &&
       state.pendingBuy === null &&
       state.pendingRent === null &&
-      state.pendingAuction === null,
+      state.pendingAuction === null &&
+      !inDebt,
+    inDebt,
+    debtAmount: inDebt && me ? -me.cash : 0,
     inJail,
     canPayJailFine: inJail && (me?.cash ?? 0) >= JAIL_FINE,
     canUseJailCard: inJail && (me?.jailCards ?? 0) > 0,

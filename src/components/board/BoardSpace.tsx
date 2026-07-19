@@ -115,7 +115,7 @@ function OccupantTokens({ occupants, turnIndex, highlightSeat }: {
   return (
     <div style={{ position: "absolute", bottom: 1, left: 0, right: 0, display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "center", pointerEvents: "none" }}>
       {occupants.map(({ player, index }) => (
-        <div key={player.id} style={tokenStyle(player.color, index === turnIndex || index === highlightSeat)}>
+        <div key={player.id} style={tokenStyle(player.color, index === turnIndex, index === highlightSeat)}>
           {player.token}
         </div>
       ))}
@@ -123,18 +123,30 @@ function OccupantTokens({ occupants, turnIndex, highlightSeat }: {
   );
 }
 
-/** One pawn's style; highlighted pawns get a pulsing ring in the player's color. */
-function tokenStyle(color: string, highlighted: boolean): React.CSSProperties {
-  return {
+/** One pawn's style. The active player's pawn gets a strong, size-pulsing glow so
+ *  it's unmistakable whose turn it is; a merely hovered pawn gets a gentler lift. */
+function tokenStyle(color: string, active: boolean, hovered: boolean): React.CSSProperties {
+  const style: React.CSSProperties = {
     width: 26, height: 27, borderRadius: "50% 50% 45% 45%", background: "linear-gradient(180deg, #fffdf6, #efe6cd)",
     border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center",
     fontSize: 14, fontFamily: "var(--font-orbitron), sans-serif", fontWeight: 700, color,
-    boxShadow: highlighted
-      ? `0 0 0 2px #fffdf6, 0 0 0 4px ${color}, 0 2px 6px rgba(0,0,0,.45)`
-      : `0 2px 4px rgba(0,0,0,.4)`,
-    transform: highlighted ? "translateY(-3px) scale(1.08)" : undefined,
+    boxShadow: active
+      ? `0 0 0 2px #fffdf6, 0 0 0 5px ${color}, 0 0 14px 3px ${color}, 0 3px 9px rgba(0,0,0,.5)`
+      : hovered
+        ? `0 0 0 2px #fffdf6, 0 0 0 4px ${color}, 0 2px 6px rgba(0,0,0,.45)`
+        : `0 2px 4px rgba(0,0,0,.4)`,
+    // The active pawn's transform is driven entirely by the pulse keyframe; a
+    // hovered-only pawn gets a static lift.
+    transform: hovered && !active ? "translateY(-3px) scale(1.08)" : undefined,
     transition: "transform .18s ease, box-shadow .18s ease",
-    animation: highlighted ? "pawnPulse 1.4s ease-in-out infinite" : undefined,
-    zIndex: highlighted ? 2 : 1,
+    animation: active
+      ? "pawnPulseActive 1.1s ease-in-out infinite"
+      : hovered
+        ? "pawnPulse 1.4s ease-in-out infinite"
+        : undefined,
+    zIndex: active ? 3 : hovered ? 2 : 1,
   };
+  // Custom prop the pulse keyframe reads to tint the glow the player's color.
+  (style as Record<string, string>)["--pawn-glow"] = color;
+  return style;
 }

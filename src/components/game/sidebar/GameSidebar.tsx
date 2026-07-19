@@ -78,6 +78,8 @@ export default function GameSidebar({
         />
       )}
 
+      {view.inDebt && <DebtBanner amount={view.debtAmount} />}
+
       <PrimaryButton onClick={() => send({ type: "endTurn" })} disabled={!view.canEnd} style={{ flex: "none", padding: 13, letterSpacing: 1.5, border: "1px solid rgba(0,0,0,.22)", boxShadow: view.canEnd ? "0 4px 14px rgba(34,24,8,.32)" : "none" }}>
         End Turn
       </PrimaryButton>
@@ -163,6 +165,25 @@ function ProposeTradeButton({ canTrade, onOpenTrade }: { canTrade: boolean; onOp
     }}>
       ⇄ Propose Trade
     </button>
+  );
+}
+
+/** Danger notice shown while the viewer owes money: they must sell buildings or
+ *  mortgage properties (via the Portfolio above) to climb back to $0 before they
+ *  can end their turn. End Turn / Roll are disabled meanwhile (see `canEnd`). */
+function DebtBanner({ amount }: { amount: number }) {
+  return (
+    <div style={{
+      background: "#f7e3d8", border: `1px solid ${COLOR.red}`, borderRadius: 10,
+      padding: "10px 12px", fontSize: 12, color: COLOR.red, fontWeight: 600,
+      display: "flex", flexDirection: "column", gap: 3,
+      boxShadow: "0 4px 12px rgba(34,24,8,.22)",
+    }}>
+      <span style={{ fontWeight: 800, letterSpacing: 0.4 }}>⚠ You owe ${amount}</span>
+      <span style={{ color: COLOR.text, fontWeight: 500 }}>
+        Sell buildings or mortgage properties above to cover it before ending your turn.
+      </span>
+    </div>
   );
 }
 

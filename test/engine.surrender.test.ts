@@ -38,6 +38,40 @@ describe("surrender", () => {
     expect(game.state.owners[8]).toBeUndefined();
   });
 
+  it("auctions the estate of a player bankrupted by rent they can't pay", () => {
+    const game = startedGame(["Ada", "Bo", "Cy"]); // Ada (0) to act
+    game.admin({ kind: "setOwner", pos: 8, owner: 0 }); // Ada's estate, up for grabs once she busts
+    game.admin({ kind: "setOwner", pos: 6, owner: 1 }); // Bo's rental
+    game.admin({ kind: "setBuildings", pos: 6, level: 5 }); // hotel -> rent beyond Ada's net worth
+    game.admin({ kind: "setCash", target: 0, amount: 1 }); // Ada can't cover the rent even by liquidating
+
+    game.rigRoll("Ada", 2, 4); // 0 -> 6, lands on Bo's property
+    expect(game.state.pendingRent?.to).toBe(1);
+
+    game.apply("Ada", { type: "payRent" });
+    expect(game.player(0).bankrupt).toBe(true);
+    expect(game.player(0).properties).toEqual([]);
+    expect(game.state.owners[8]).toBeUndefined();
+    // The busted player's estate goes to auction among the survivors.
+    expect(game.state.pendingAuction).toMatchObject({ pos: 8, active: [1, 2] });
+  });
+
+  it("keeps the estate with the bank (no auction) when the bust ends the game", () => {
+    const game = startedGame(["Ada", "Bo"]); // Ada (0) to act
+    game.admin({ kind: "setOwner", pos: 8, owner: 0 });
+    game.admin({ kind: "setOwner", pos: 6, owner: 1 });
+    game.admin({ kind: "setBuildings", pos: 6, level: 5 }); // hotel -> rent beyond Ada's net worth
+    game.admin({ kind: "setCash", target: 0, amount: 1 });
+
+    game.rigRoll("Ada", 2, 4); // 0 -> 6
+    game.apply("Ada", { type: "payRent" });
+    expect(game.player(0).bankrupt).toBe(true);
+    // Only Bo remains — no one to auction to; the estate stays unowned.
+    expect(game.state.pendingAuction).toBeNull();
+    expect(game.state.auctionQueue).toEqual([]);
+    expect(game.state.owners[8]).toBeUndefined();
+  });
+
   it("passes the turn on when the current player quits mid-turn", () => {
     const game = startedGame(["Ada", "Bo", "Cy"]); // Ada (0) to act
     game.admin({ kind: "setOwner", pos: 6, owner: 0 });
