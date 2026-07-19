@@ -1,7 +1,7 @@
 import { applyAction } from "@game/logic";
 import { createInitialState } from "@game/state";
 import { ADMIN_PASSWORD, ROLLOFF_START_DELAY_MS } from "@game/constants";
-import type { RandomSource } from "@game/rng";
+import type { DeckType, RandomSource } from "@game/rng";
 import type { AdminCmd, ClientAction, GameState } from "@game/types";
 
 export interface ApplyResult {
@@ -34,6 +34,13 @@ export class GameDriver {
 
   admin(cmd: AdminCmd, connectionId = "admin"): ApplyResult {
     return this.apply(connectionId, { type: "admin", password: ADMIN_PASSWORD, cmd });
+  }
+
+  /** Stack a card deck so the next draw from it is the card at `index` in
+   *  cards.json — decoupling card tests from the engine's shuffle order. */
+  stackCard(deck: DeckType, index: number): this {
+    this.state.cardDecks[deck] = [index];
+    return this;
   }
 
   /** Force the next roll's dice, then roll for `connectionId`. */

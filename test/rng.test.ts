@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { defaultRandomSource, drawCard, rollDie } from "@game/rng";
+import cardData from "@game/cards.json";
+
+const CHANCE_LEN = cardData.chance.length;
+const CHEST_LEN = cardData.chest.length;
 
 describe("rollDie", () => {
   it("maps the random range onto 1–6", () => {
@@ -13,37 +17,38 @@ describe("drawCard", () => {
   it("draws every card exactly once before repeating (chance)", () => {
     const piles: Record<"chance" | "chest", number[]> = { chance: [], chest: [] };
     const seen = new Set<string>();
-    // Draw all 10 chance cards — each must appear exactly once
-    for (let i = 0; i < 10; i++) {
+    // Draw a full cycle of chance cards — each must appear exactly once
+    for (let i = 0; i < CHANCE_LEN; i++) {
       const card = drawCard("chance", defaultRandomSource, piles);
       expect(seen.has(card.text)).toBe(false);
       seen.add(card.text);
     }
-    expect(seen.size).toBe(10);
+    expect(seen.size).toBe(CHANCE_LEN);
   });
 
   it("draws every card exactly once before repeating (chest)", () => {
     const piles: Record<"chance" | "chest", number[]> = { chance: [], chest: [] };
     const seen = new Set<string>();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < CHEST_LEN; i++) {
       const card = drawCard("chest", defaultRandomSource, piles);
       expect(seen.has(card.text)).toBe(false);
       seen.add(card.text);
     }
-    expect(seen.size).toBe(10);
+    expect(seen.size).toBe(CHEST_LEN);
   });
 
   it("reshuffles and continues after the pile is exhausted", () => {
     const piles: Record<"chance" | "chest", number[]> = { chance: [], chest: [] };
-    // Draw two full cycles (20 draws); pile should auto-reshuffle after 10
+    // Draw two full cycles; the pile should auto-reshuffle after each cycle,
+    // so every cycle still contains all distinct cards exactly once.
     const texts: string[] = [];
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < CHANCE_LEN * 2; i++) {
       texts.push(drawCard("chance", defaultRandomSource, piles).text);
     }
-    const firstCycle = new Set(texts.slice(0, 10));
-    const secondCycle = new Set(texts.slice(10, 20));
-    expect(firstCycle.size).toBe(10);
-    expect(secondCycle.size).toBe(10);
+    const firstCycle = new Set(texts.slice(0, CHANCE_LEN));
+    const secondCycle = new Set(texts.slice(CHANCE_LEN, CHANCE_LEN * 2));
+    expect(firstCycle.size).toBe(CHANCE_LEN);
+    expect(secondCycle.size).toBe(CHANCE_LEN);
   });
 });
 
